@@ -1,0 +1,611 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Building Adaptive UI 搭建自适应界面 | AppCoda翻译系列 - BridgeQ的个人学习博客</title>
+  <meta name="author" content="BridgeQ">
+
+  
+  <meta name="description" content="（本文翻译自AppCoda创建者Simon Ng出版的书籍《iOS开发中级教程》，详见：Intermediate iOS Programming with Swift） 起初，iPhone只有一种3.5英寸的屏幕，那时的软件界面很容易搭建，开发者只需要处理两种不同方向上的界面展示（水平和竖直方向 &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://wxgbridgeq.github.io/blog/2015/06/30/adaptive-layout-tutorial/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="BridgeQ的个人学习博客" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="/javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">BridgeQ的个人学习博客</a></h1>
+  
+    <h2>学习、记录、分享</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="sitesearch" value="wxgbridgeq.github.io">
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">首页</a></li>
+  <li><a href="/blog/archives">所有文章</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Building Adaptive UI 搭建自适应界面 | AppCoda翻译系列</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+2015年6月30日
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>（本文翻译自AppCoda创建者Simon Ng出版的书籍《iOS开发中级教程》，详见：<a href="http://www.appcoda.com/intermediate-swift-programming-book/">Intermediate iOS Programming with Swift</a>）</p>
+
+<p>起初，iPhone只有一种3.5英寸的屏幕，那时的软件界面很容易搭建，开发者只需要处理两种不同方向上的界面展示（水平和竖直方向）。之后，苹果发布了9.7英寸屏幕的iPad，这个时候的开发者必须为他们的应用创建两个不同的界面（比如创建两个storyboard或者xib文件），一个用来搭建iPhone版的界面，另一个用来搭建iPad版的。</p>
+
+<p>好日子一去不复返！从2014年开始，苹果公司的iPhone和iPad产品线变化很大。随着iPhone 6和iPhone 6 Plus的发布，现在的应用需要适配多种不同屏幕尺寸的设备，主要有如下几种：</p>
+
+<ul>
+<li>iPhone 4/4s（3.5英寸）</li>
+<li>iPhone 5/5c/5s（4英寸）</li>
+<li>iPhone 6（4.7英寸）</li>
+<li>iPhone 6 Plus（5.5英寸）</li>
+<li>iPad / iPad 2 / iPad Air / iPad Air 2（9.7英寸）</li>
+<li>iPad mini / iPad mini 2 / iPad mini 3（7.9英寸）</li>
+</ul>
+
+
+<!--more-->
+
+
+<p>对开发者来说，创建一个能够适配多种屏幕尺寸和方向的通用型界面是一个非常大的挑战。那么，我们如何来创建一个像素不被拉伸、界面完美的应用呢？</p>
+
+<p>在iOS 8中，苹果推出了一种新技术叫做<code>Adaptive User Interfaces (自适应界面)</code>，它能够支持不同尺寸、不同方向屏幕的适配，使用这种技术，我们的应用就可以适配以上多种iPhone和iPad设备了。</p>
+
+<p>实现自适应界面，需要了解一个新概念——<code>Adaptive Layout (自适应布局)</code>。在Xcode 6中，开发者可以通过使用<em>a universal storyboard</em>来搭建能够适配所有设备的自适应界面。现在，你可以只使用一个storyboard文件来布局你所有的视图控件，包括iPhone和iPad版本。</p>
+
+<p>为了实现自适应布局，苹果在iOS 8中推出了<code>Size Classes</code>技术，它是实现自适应布局中最重要的一步。<code>Size Classes</code>是对不同尺寸、不同方向的设备的一种抽象，将<code>Size Classes</code>和<code>Auto Layout (自动布局)</code>技术结合起来使用，就能够搭建出自适应界面。在iOS 8中，实现自适应布局需要如下几个步骤：</p>
+
+<ol>
+<li>先使用自动布局来搭建你的界面，自动布局已经能够处理大多数尺寸和方向的适配任务。</li>
+<li>针对不同的<em>size classes</em>添加特定的布局约束。比如说，当设备横屏时增加两个标签之间的间距。</li>
+</ol>
+
+
+<p>在本文中，我将介绍如何使用各种自适应界面技术来创建一个通用型的应用，它可以适配各种不同尺寸和方向的设备。</p>
+
+<h2>自适应界面示例</h2>
+
+<p>本次示例工程不需要编写代码，我们主要使用storyboard来布局我们的视图组件，并学习如何使用自动布局和<em>Size Classes</em>技术来实现自适应界面。通过本文的学习，你将会构建一个具有单一视图控制器的应用，该应用可以适配任何不同尺寸和方向的设备。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui01.png" alt="" /></p>
+
+<h2>创建Xcode工程</h2>
+
+<p>首先，启动Xcode，创建一个<code>Single View Application</code>的项目，项目名称填入<code>AdaptiveUIDemo</code>，并确保<code>Devices</code>选项选择的是<code>Universal</code>。</p>
+
+<p>一旦创建完项目，打开<code>Main.storyboard</code>文件，你会看见一个600×600尺寸的方形控制器视图，因为使用了<code>Size Classes</code>功能，控制器的视图表示的是一个通用的设备，而不是像以前那样表示的是一个具体的设备（例如4英寸的iPhone）。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui02.png" alt="" /></p>
+
+<p>你可以使用自动布局对视图组件（比如标签）进行约束，同以前旧版本的Xcode或者关闭了<code>Size Classes</code>功能的项目一样。</p>
+
+<p>接下来，下载图片资源并将其添加到项目的<code>images.xcassets</code>里面。链接地址点击<a href="https://www.dropbox.com/s/1rnlpib0dtttom8/adaptiveui-images.zip?dl=0">这里</a>。（译注：原文资源文件地址需要FQ访问，本人已转存到这里：<a href="http://7xk1wz.com1.z0.glb.clouddn.com/tshirt.jpg">图片1</a>、<a href="http://7xk1wz.com1.z0.glb.clouddn.com/tshirt@2x.jpg">图片2</a>、<a href="http://7xk1wz.com1.z0.glb.clouddn.com/tshirt@3x.jpg">图片3</a>）</p>
+
+<p>接下来，回到storyboard文件，往控制器中拖入一个<code>UIImageView</code>，设置它的宽度为600、高度为390，在属性选项卡中，设置image为<code>tshirt</code>，Mode选择<code>Aspect Fill</code>。在本文接下来的内容中，我将把这个<code>UIImageView</code>叫做产品图片视图。</p>
+
+<p>然后，再往控制器中拖入一个<code>UIView</code>，放在产品图片视图的下面，设置它的宽度为600、高度为210。这个<code>UIView</code>将作为一个容器，用来装我们的其他视图控件（比如标签），把一些相关联的组件包装在一个父视图内，将更有利于我们对其进行布局。在本文接下来的内容中，我将把这个<code>UIView</code>叫做产品简介视图。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui03.png" alt="" /></p>
+
+<p>接下来，往产品简介视图中拖入一个<code>UILable</code>，将其文本内容设置为<em>PSD T-Shirt Mockup Template</em>，将字体设置为<em>Avenir Next</em>，字体大小设置为32，在尺寸选项卡中，将X改为22、Y改为15、宽度改为556、高度改为44。在本文接下来的内容中，我将把这个<code>UILabel</code>叫做标题标签。</p>
+
+<p>再拖入一个<code>UILabel</code>放在标题标签的下面，将其文本内容设置为<em>This is a free psd T-shirt mockup provided by pixeden.com. The PSD comes with a plain simple tee-shirt mockup template. You can edit the t-shirt color and use the smart layer to apply your designs. The high-resolution makes it easy to frame specific details with close-ups.</em>，同样将字体设置为<em>Avenir Next</em>，字体大小设为18，<em>Lines</em>设为0。在尺寸选项卡中，将X改为22、Y改为58、宽度改为556、高度改为123。在本文接下来的内容中，我将把这个<code>UILabel</code>叫做产品描述标签。</p>
+
+<p>要注意这两个标签是放在产品简介视图里面的，你可以打开大纲视图来确认它们的层级关系是否正确。如果你做的正确，你的界面应该和下图所示一样。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui04.png" alt="" /></p>
+
+<p>如果你的界面跟上图在位置上不完全一致也没关系，因为接下来要对这些控件添加约束进行自动布局。</p>
+
+<p>现在先让我们来看一下我们的界面在不同的设备上表现如何。在Xcode 6中，你可以不通过启动模拟器运行程序就能看到你的界面如何展示。最新版本的Xcode提供了一个预览功能，可以使开发者快速方便地查看界面在不同尺寸设备上的样子。</p>
+
+<p>如下图所示操作，点击助手弹出菜单选择预览，然后按住<em>shift</em>和<em>option</em>键点击<code>Main.storyboard</code>。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui05.png" alt="" /></p>
+
+<p>你可以选择在哪个区域显示预览窗口。双击<em>main</em>旁边的加号按钮，Xcode会自动打开助手编辑视图并将应用界面的预览显示出来。默认显示出的是4英寸iPhone上应用界面的样子，你可以点击左下角的加号按钮来添加不同尺寸的设备，从而来查看应用界面在不同屏幕尺寸上的显示。如果你添加了所有尺寸的设备，包括iPad设备，你的屏幕现在应该跟下图所示一样。你会发现，我们现在的界面不能很好的适应所有的设备，这是因为我们还没有使用自动布局来给控件添加约束。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui06.png" alt="" /></p>
+
+<h2>添加自动布局约束</h2>
+
+<p>现在我们来为视图组件添加布局约束。首先从我们的产品图片视图开始，有些开发者对自动布局感到恐惧，我的习惯是先用普通的语言将约束描述一遍，以我们的产品图片视图为例，我认为对它的约束应该是下面这个样子：</p>
+
+<ul>
+<li>在产品图片视图和主视图之间，它们的上边、左边和右边的间距应该为0。</li>
+<li>产品图片视图大约占主视图的65%~70%左右</li>
+<li>产品图片视图和它下边的产品简介视图之间的间距也应该为0。</li>
+</ul>
+
+
+<p>把这些描述转换成自动布局的约束，看上去应该如下所示：</p>
+
+<ul>
+<li>约束产品图片视图的上边、左边和右边的间距，值设为0。</li>
+<li>给产品图片视图增加一个相对于主视图的高度约束，将相乘的系数设为0.65。</li>
+<li>添加产品图片视图和产品简介视图之间的间距约束，值设为0。</li>
+</ul>
+
+
+<p>现在我们开始设置这些约束，选择产品图片视图，点击自动布局菜单中的<em>Pin</em>按钮，选中上边、左边、右边的约束并设置为0，注意要确保<code>Constrain to margin</code>没有被选中，然后点击下边的按钮添加三个约束。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui07.png" alt="" /></p>
+
+<p>接下来，打开左侧的大纲视图，按住<em>Control</em>键从产品图片视图拖到主视图，在弹出的菜单中选择等高约束。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui08.png" alt="" /></p>
+
+<p>添加完等高约束后，该约束就会出现在大纲视图上。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui09.png" alt="" /></p>
+
+<p>选中该约束，点击右侧的尺寸选项卡，在这里你可以对该约束进行自定义的设置。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui10.png" alt="" /></p>
+
+<p>在设置之前，先查看一下<code>first item</code>中是否是<em>tshirt.Height</em>、<code>second item</code>中是否是<em>SuperView.Height</em>，如果不是，可以点击下拉菜单然后选择<em>Reverse First and Second item</em>。</p>
+
+<p>默认情况下，两个高度值之间的相乘系数是1，代表着产品图片视图占据了主视图的100%，我们希望产品图片视图只是占据主视图的65%，所以将相乘的系数改为0.65。</p>
+
+<p>接下来，选择产品简介视图，点击<em>Pin</em>按钮，选中左边、右边和下边的约束，设置为0。同样要确保<code>Constrain to margin</code>选项没有被选中，然后点击下边按钮添加三个约束。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui11.png" alt="" /></p>
+
+<p>接下来，我们要为产品图片视图和产品简介视图添加间距约束。在大纲视图中，按住<em>Control</em>键从产品图片视图拖到产品简介视图。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui12.png" alt="" /></p>
+
+<p>在弹出的菜单中选择<em>竖向间距</em>约束，这样我们就添加了产品图片视图的底部和产品简介视图的顶部之间的间距约束。</p>
+
+<p>现在再预览一下我们的界面，你会发现在不同尺寸的设备上它看上去稍微好一些了，但是我们还可以做很多事情来让它变得更好。</p>
+
+<p>现在，我们来为产品简介视图中的两个标签设置约束。</p>
+
+<p>先选择标题标签，就是看上去字体更大的那个，点击自动布局的<em>Pin</em>按钮，设置它上边约束15、左边约束22、右边约束22，记住确保<code>Constrain to margin</code>选项没有被选中，然后点击下边的按钮添加三个约束。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui13.png" alt="" /></p>
+
+<p>接下来，选择产品描述标签，用同样的办法设置它的下边约束29、左边约束22、右边约束22。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui14.png" alt="" /></p>
+
+<p>最后，给两个标签添加间距约束，按住<em>Control</em>键从标题标签拖到产品描述标签，同样，在弹出的菜单中选择<em>竖向间距</em>约束。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui15.png" alt="" /></p>
+
+<p>当你添加完这个约束后，你会在storyboard上发现很多黄色和红色的线，这表示我们的布局现在存在问题，当约束不明确或有冲突时就会产生布局问题。</p>
+
+<p>要解决布局问题，可以点击大纲视图中的红色箭头，这样会列出现在存在所有的布局问题。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui16.png" alt="" /></p>
+
+<p>Xcode非常智能可以帮助我们很容易地解决布局问题，通过点击红色指示器按钮，就会弹出多种可能的解决办法，我们选择<em>Change Priority</em>来解决我们之前的布局问题。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui17.png" alt="" /></p>
+
+<p>非常棒！我们已经完成了所有视图控件的自动布局，现在重新在预览视图中查看我们的界面在不同尺寸设备上的展示。</p>
+
+<p>界面看上去比之前要好多了，产品图片已经能正确的显示。然而，我们的界面还有以下几处问题需要解决：</p>
+
+<ul>
+<li>产品描述标签在iPad上被竖向居中显示了</li>
+<li>标题标签不能被完整地显示，尤其是在iPhone设备上</li>
+<li>产品描述标签在iPhone上也只是部分显示</li>
+</ul>
+
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui18.png" alt="" /></p>
+
+<p>我们先来解决第一条问题，很明显，问题应该出在我们为产品描述标签添加的约束上。你可以在尺寸选项卡里面查看已经添加的约束。选择产品描述标签，然后选择尺寸选项卡。</p>
+
+<p>你会发现如下图所示的一系列约束。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui19.png" alt="" /></p>
+
+<p>我们给产品描述标签添加了四个约束，很明显，我们的问题应该与上边和下边的间距约束有关。</p>
+
+<p>在自动布局中，每一个约束都有一个优先级的概念，高优先级的约束会比低优先级的约束优先被执行。所有新建的约束其优先级都会被设为一个相同的值（值为1000），意味着所有约束都同等重要、都需要被执行。我们产品描述标签的上边和下边约束的优先级相同，但是看上去好像下边的约束更胜一筹，导致我们标题标签和产品描述标签中间出现了一个很大的间距。</p>
+
+<p>要解决这个问题，应该把产品描述标签的下边间距约束的优先级降低。点击下边间距约束上的<em>Edit</em>按钮，将<em>priority</em>的值改为250。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui20.png" alt="" /></p>
+
+<p>这样完成之后，我们的第一条界面问题就解决了。</p>
+
+<h2>Size Classes</h2>
+
+<p>不要忘了，我们之前提到过自适应界面技术需要两个步骤，到目前为止我们只是完成了界面的自动布局，自动布局能够满足大多数情况下的界面适配，接下来的第二步我们将使用<code>Size Classes</code>技术让我们的界面看上去更加完美。</p>
+
+<p>一个<code>size class</code>代表了一种或多种屏幕尺寸的抽象，包括竖直方向（高度）和水平方向（宽度）的尺寸。在iOS 8中有两种类型的<code>size class</code>：<em>regular</em>(整齐的)和<em>compact</em>（紧凑的）。<em>regular</em>类型的<code>size class</code>表示一个比较大的屏幕空间，<em>compact</em>类型的<code>size class</code>则表示一个比较小的屏幕空间。</p>
+
+<p>使用<code>size classes</code>来抽象地描述屏幕的尺寸，会有以下四种结果：<code>Regular width-Regular Height</code>、<code>Regular width-Compact Height</code>、<code>Compact width-Regular Height</code>和<code>Compact width-Compact Height</code>。</p>
+
+<p>下图中的表格展示了不同iOS设备对应的<code>size classes</code>模型。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui21.png" alt="" /></p>
+
+<p>为了描述真实的显示环境，你必须指定水平和竖直两个方向上的<code>size class</code>类型，以iPad为例，你应该指定它的<code>size class</code>为<code>Regular width-Regular Height</code>。</p>
+
+<p>在自动布局的基础上，你可以为不同的<code>size classes</code>指定特定的布局约束，比如说，你可以为<code>size class</code>设为<code>compact height-regular width</code>的屏幕上的标签指定特定的字体大小，你也可以专门为<code>regular-regular</code>尺寸的屏幕改变一个按钮的位置。</p>
+
+<p>需要注意的是，所有iPhone设备的竖向屏幕的<code>size class</code>都为<code>compact width-regular height</code>，这意味着你的界面在iPhone 4s和iPhone 6上竖屏展示的样子是几乎一样的。而对于iPhone 6 Plus的横屏来说，它的<code>size class</code>应该是<code>regular width-compact height</code>，这表示你的界面与在iPhone 4/5/6上的展示是完全不一样的。</p>
+
+<p>对<code>Size Classes</code>的基本概念有过了解之后，我们接下来看看如何解决我们应用界面剩下的两个问题：</p>
+
+<ul>
+<li>标题标签不能被完整地显示，尤其是在iPhone设备上</li>
+<li>产品描述标签在iPhone上也只是部分显示</li>
+</ul>
+
+
+<h2>使用Size Classes自定义字体大小</h2>
+
+<p>我们想让标题标签和描述标签能在iPhone上完美显示，问题是现在字体的大小对于iPad来说很合适，但是对于iPhone来说它太大了。</p>
+
+<p>使用<code>Size Classes</code>技术，你可以为不同尺寸的屏幕指定特定的字体大小。接下来，我们想要改变所有iPhone的竖屏界面内的字体大小，在<code>size classes</code>的表格中我们可以看出，它对应的<code>size class</code>应为<code>compact width-regular height</code>。</p>
+
+<p>想要为不同尺寸设置不同的字体大小，首先在storyboard中选中我们的标题标签，在属性选项卡中<em>Font</em>选项左边，你会发现有一个加号按钮。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui22.png" alt="" /></p>
+
+<p>点击加号按钮然后依次选择<code>compact width-regular height</code>，</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui23.png" alt="" /></p>
+
+<p>然后你会发现新添加了一条<em>Font</em>选项专门用来设置你所指定的<code>size class</code>，保持原始的<em>Font</em>选项不变，我们只需将新的<em>Font</em>选项内的字体大小改为20。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui24.png" alt="" /></p>
+
+<p>这样做的意思是通知系统，在所有iPhone设备的竖屏显示时，使用更小一点的字体大小，而在iPad上显示时，仍然使用我们早期设置的大小。接下来选择产品描述标签，同样更改它在<code>compact width-regular height</code>下的字体大小为13。查看预览视图，我们的文字已经能够完美地展示在不同设备上了。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui25.png" alt="" /></p>
+
+<h2>使用Size Classes自定义界面的设计</h2>
+
+<p>现在我们的界面已经适配所有的竖屏尺寸了，那么在横屏显示时，我们的界面又是如何展示的呢？</p>
+
+<p>在预览窗口内，点击设备下部的旋转按钮（比如点击4英寸的iPhone）。很明显，我们的界面在iPhone的横屏上并不能很好的展示。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui26.png" alt="" /></p>
+
+<p>你可能会想到我们可以为横屏尺寸的屏幕设置更小的字体，就跟我们之前做的一样，我并不打算这么去做。</p>
+
+<p>我将重新设计横屏界面的布局来代替之前的设计，目的是为了更好的利用横屏模式下更宽的尺寸，这才是<code>Size Classes</code>技术能力的体现。</p>
+
+<p>对于横屏界面来说，将产品图片视图和产品简介视图并排显示效果可能更好，并且每一个视图占据主视图的50%，我们的界面应该看上去像下图这样。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui27.png" alt="" /></p>
+
+<p>到目前为止，我们并没有介绍<code>Size Classes</code>在视图布局上如何应用，我们之前设计的界面一直是在<code>wAny hAny</code>的<code>size class</code>下进行的。</p>
+
+<p>现在，点击storyboard下方的<code>wAny hAny</code>按钮，在这里我们能够通过选择表格大小来指定不同的<code>size class</code>。我们想要更改iPhone设备横屏下的界面布局，所以我们选择<code>Any Width-Compact Height</code>，它代表了所有iPhone设备的横屏显示（包括iPhone 6 Plus）。</p>
+
+<p>在表格中移动鼠标，选择<code>Any Width-Compact Height</code>的<code>size class</code>。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui28.png" alt="" /></p>
+
+<p>当你选择特定的<code>size class</code>之后，控制器视图的尺寸也会发生相应的改变，在storyboard底部会标示出你当前所指定的<code>size class</code>为<em>wAny hCompact</em>，接下来你做的所有布局，都只会针对当前的<code>size class</code>，而不会影响到其他尺寸，这就是在Xcode中如何使用一个storyboard文件来展示多种界面布局的原理。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui29.png" alt="" /></p>
+
+<p>好，接下来我们开始设计我们的界面。</p>
+
+<p>当前的界面会将我们之前添加的布局约束保留下来（<code>size class</code>为<em>wAny hAny</em>的时候），因为我们接下来想要重新去布局我们的界面，所以我们应该先把之前的约束全部清空。</p>
+
+<p>在大纲视图中选择主视图，然后点击自动布局菜单中的<em>Issues</em>按钮，然后选择<em>All Views</em>下面的<em>Clear Constraints</em>选项。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui30.png" alt="" /></p>
+
+<p>这样会清空我们当前<code>size class</code>下的所有布局约束，注意那些约束在<em>wAny hAny</em>下仍然有效，我们只是将<em>wAny hCompact</em>下的所有约束给清空了。</p>
+
+<p>你可以打开大纲视图展开约束列表，你会发现所有约束都还在只是变成了灰色，意味着当前<code>size class</code>下它们不可用。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui31.png" alt="" /></p>
+
+<p>如果你选中任意一个约束，然后打开尺寸选项卡，你会发现有两个<em>Installed</em>复选框，而且<em>wAny hCompact</em>下的<em>Installed</em>没有被选中，而通用布局下的<em>Installed</em>被选中了，这验证了我们只是将当前<code>size class</code>下的约束给清除了，并没有影响其他尺寸下的布局约束。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui32.png" alt="" /></p>
+
+<p>接下来，我们开始布局我们的新界面，让产品图片视图和产品简介视图并排显示在一行。</p>
+
+<p>首先，选择产品图片视图，在尺寸选项卡下，设置X为0、Y为0、宽度为300、高度为400，然后选择产品简介视图，设置它的尺寸X为300、Y为0、宽度为300、高度为400，界面的效果应该像下图一样。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui33.png" alt="" /></p>
+
+<p>接下来，选择标题标签，设置它的尺寸X为22、Y为15、宽度为256、高度为70，标题文字的字体太大了，所以我们要为当前<code>size class</code>下的字体设置特定的大小，在属性选项卡中，点击<em>Font</em>旁边的加号按钮，选择<em>Any Width | Compact Height (current)</em>选项。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui34.png" alt="" /></p>
+
+<p>这样就新建了一个对当前<code>size class</code>下的字体设置，把它的大小改为25。现在我们的标题标签只能显示在一行里，将<em>Lines</em>属性从1改为0，标题标签会自动判断自己应该显示几行。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui35.png" alt="" /></p>
+
+<p>选择产品描述标签，设置它的尺寸X为22、Y为85、宽度为256、高度为250，现在我们的界面应该如下图所示。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui36.png" alt="" /></p>
+
+<p>因为我们之前已经把所有约束清空了，所以接下来我们必须为当前<code>size class</code>下的界面添加自动布局约束。</p>
+
+<p>选择产品图片视图，点击<em>Pin</em>按钮，添加上边、左边、下边间距约束为0，记住不要选中<code>Constrain to margins</code>，然后点击添加三个约束。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui37.png" alt="" /></p>
+
+<p>接下来选择产品简介视图，同样设置它的上边、右边、下边间距约束为0。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui38.png" alt="" /></p>
+
+<p>在大纲视图内，按住<em>Control</em>键从主视图拖到产品图片视图，选择等宽约束。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui39.png" alt="" /></p>
+
+<p>这条约束是要用来表示产品图片视图占据主视图的一半，就像之前我们将等高约束相乘系数改为0.65一样，这里我们把等宽约束的相乘系数改为0.5，这样产品图片视图就只占据主视图的50%了。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui40.png" alt="" /></p>
+
+<p>接下来我们为产品图片视图和产品简介视图添加间距约束。在大纲视图中，按住<em>Control</em>键从产品图片视图拖到产品简介视图，在弹出的菜单中选择<em>竖向间距</em>约束。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui41.png" alt="" /></p>
+
+<p>好了，现在我们搞定产品图片视图和产品简介视图的所有约束了，剩下的就是为两个标签添加约束了。</p>
+
+<p>首先选择标题标签，设置它的约束为上边15、左边22、右边22，记住不要选中<code>Constrain to margins</code>选项。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui42.png" alt="" /></p>
+
+<p>按住<em>Control</em>键从标题标签拖到产品描述标签，在弹出的菜单中选择<em>竖向间距</em>约束。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui43.png" alt="" /></p>
+
+<p>选择产品描述标签，设置它的约束为左边22、右边22，记住不要选中<code>Constrain to margins</code>选项。</p>
+
+<p>storyboard会提示我们现在的约束有些问题。在大纲视图中点击右上角的黄色箭头，然后点击黄色指示器按钮，然后选择<em>Update frame</em>选项来解决我们所有的布局问题。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui44.png" alt="" /></p>
+
+<p>非常棒！现在再去预览视图中查看我们应用的界面在横屏下的显示，如下图所示。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui45.png" alt="" /></p>
+
+<p>我们的界面看上去非常精美，对吧？然而在3.5和4英寸的iPhone上，产品描述标签的显示还有一些小问题。要解决这个问题，你需要新建一个针对这种情况下的<code>size class</code>的字体设置选项，我将这一步留给你们自行练习解决。</p>
+
+<p>接下来，点击运行按钮使用模拟器运行我们的程序，当你将设备从竖屏旋转到横屏时，你会发现我们的界面在发生变化的过程中还带有非常平滑的转场动画。</p>
+
+<h2>使用Size Classes自定义约束</h2>
+
+<p>希望你现在已经理解如何使用<code>Size Classes</code>技术来自定义字体和自定义界面设计，除此之外，使用<code>Size Classes</code>技术还可以自定义约束。</p>
+
+<p>如果我想让我们的界面在iPhone 6 Plus下展示成下图的样子，却不改变它在其他iPhone设备上的展示，那么我该如何去做呢？</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui46.png" alt="" /></p>
+
+<p>从图中我们可以看到，标题标签和产品描述标签被移到了右下方，很明显，我们应该自定义标题标签同它的父视图（产品简介视图）之间的上边间距，让我们来看看应该如何去做。</p>
+
+<p>iPhone 6 Plus横屏的<code>size class</code>应该为<code>Regular width-Compact Height</code>，在storyboard下方的<em>Size Classes</em>表格选项中选择<code>Regular width-Compact Height</code>并确认。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui47.png" alt="" /></p>
+
+<p>在大纲视图中，找到标题标签同它父控件之间的竖向间距约束。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui48.png" alt="" /></p>
+
+<p>在尺寸选项卡中，你可以在<em>Constant</em>选项旁边看到一个加号按钮，<em>Constant</em>的值现在被设置为15，我们希望在当前<code>size class</code>下增大这个间距，所以点击加号按钮，选择<code>Regular Width | Compact Height (current)</code>选项。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui49.png" alt="" /></p>
+
+<p>在新建的<em>wR hC</em>选项中，将间距值设为230。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui50.png" alt="" /></p>
+
+<p>如果你的大纲视图中显示存在布局约束问题，你可以点击箭头，然后根据Xcode的建议来解决约束问题。</p>
+
+<p>再次在预览视图中查看我们的界面，你会发现5.5英寸的iPhone界面改变了，而其他iPhone设备上的界面并没有变化。</p>
+
+<h2>总结</h2>
+
+<p>在iOS 8和Xcode 6中，苹果为开发者提供了非常强大的工具来搭建自适应界面。在本文中，我们介绍了<code>Size Classes</code>技术和相关概念，并展示了如何搭建一个自适应的界面。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/adaptiveui51.png" alt="" /></p>
+
+<p>自适应布局是iOS 8中一个非常重要的新特性，开发者只针对一种设备、一种屏幕尺寸去设计界面的日子不可能再有了，如果你正打算开发一款新的应用，确保你已经熟悉自动布局和<code>Size Classes</code>技术，从而让你的应用能够适配多种屏幕尺寸和方向，未来的应用界面肯定更需要自适应布局技术。</p>
+
+<p>你可以在<a href="https://www.dropbox.com/s/j2dja7mck9rgfvd/AdaptiveUIDemo.zip?dl=0">这里</a>下载本教程的完整示例代码，供你学习和参考。（译注：原文资源文件地址需要FQ访问，本人已转存到GitHub上，详见<a href="https://github.com/WXGBridgeQ/AdaptiveUIDemo">这里</a>）</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard"><span class="fn">BridgeQ</span></span>
+
+      
+
+
+
+
+2015年6月30日
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/ji-zhu-wen-zhang-fan-yi/'>技术文章翻译</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/06/19/uiscrollview-tutorial/" title="Previous Post: UIScrollView新手教程 | AppCoda翻译系列">&laquo; UIScrollView新手教程 | AppCoda翻译系列</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2015/07/06/slidemenu-demo/" title="Next Post: 自己模仿的一个侧拉菜单的小Demo">自己模仿的一个侧拉菜单的小Demo &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>最新文章</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/08/10/custom-transition-animation/">自定义控制器转场动画及下拉菜单的小Demo | AppCoda翻译系列</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/09/simple-qzone/">简单模仿iPad版QQ空间界面的小Demo</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/23/oc-runtime-practice/">一次关于OC运行时和Method Swizzing的小实践</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/21/protocol-oriented-programming-first/">Swift面向协议编程初探 | WWDC 2015学习笔记</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/09/effective-oc-note-second/">Effective Objective-C 读书笔记(二) | 理解OC运行时</a>
+      </li>
+    
+  </ul>
+</section>
+<section>
+  <h1>文章分类</h1>
+  <ul id="categories">
+    
+      <li class="category">
+        <a class='category' href='/blog/categories/octopress/'>octopress</a> (1)
+      </li>
+    
+      <li class="category">
+        <a class='category' href='/blog/categories/objective-c/'>objective-c</a> (2)
+      </li>
+    
+      <li class="category">
+        <a class='category' href='/blog/categories/ji-zhu-wen-zhang-fan-yi/'>技术文章翻译</a> (3)
+      </li>
+    
+      <li class="category">
+        <a class='category' href='/blog/categories/ios/'>ios</a> (3)
+      </li>
+    
+      <li class="category">
+        <a class='category' href='/blog/categories/swift/'>swift</a> (1)
+      </li>
+    
+  </ul>
+</section>
+<section>
+  <h1>关于作者</h1>
+  <p>85后程序员，<a href="http://swift.gg/" target="_blank">SwiftGG</a> 翻译组成员。</p>
+  <p>
+  	GitHub：<a href="https://github.com/WXGBridgeQ" target="_blank">WXGBridgeQ</a></br>
+  	新浪微博：<a href="http://weibo.com/coderchow" target="_blank">我是乔忘记疯狂</a></br>
+  </p>
+</section>
+<section>
+  <h1>友情链接</h1>
+  <p>
+  	<a href="http://swift.gg/" target="_blank">SwiftGG翻译组 - 高质量的Swift译文网站</a></br>
+  	<a href="http://www.swiftyper.com/" target="_blank">221B BAKER STREET</a></br>
+  	<a href="http://triplecc.github.io/" target="_blank">tripleCC的技术博客</a></br>
+  </p>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2018 - BridgeQ -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

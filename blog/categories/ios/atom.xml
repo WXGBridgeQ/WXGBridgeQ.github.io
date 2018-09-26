@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[文章分类：ios | BridgeQ的个人学习博客]]></title>
+  <link href="http://wxgbridgeq.github.io/blog/categories/ios/atom.xml" rel="self"/>
+  <link href="http://wxgbridgeq.github.io/"/>
+  <updated>2018-09-26T22:53:03+08:00</updated>
+  <id>http://wxgbridgeq.github.io/</id>
+  <author>
+    <name><![CDATA[BridgeQ]]></name>
+    <email><![CDATA[wxg.bridgeq@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[简单模仿iPad版QQ空间界面的小Demo]]></title>
+    <link href="http://wxgbridgeq.github.io/blog/2015/08/09/simple-qzone/"/>
+    <updated>2015-08-09T22:50:00+08:00</updated>
+    <id>http://wxgbridgeq.github.io/blog/2015/08/09/simple-qzone</id>
+    <content type="html"><![CDATA[<p>学习iPad开发的第一个小程序，主要学习横竖屏切换时控件frame的更新，以及iPad中modal控制器的样式设置等。</p>
+
+<p>没有太多新知识点，也算是对之前iPhone项目开发的总结回顾吧。</p>
+
+<p>代码思路清晰，注释详尽，适合给新手学习参考。</p>
+
+<p>代码链接地址:<a href="https://github.com/WXGBridgeQ/WXGSimpleQzoneDemo_iPad">WXGSimpleQzoneDemo_iPad</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[一次关于OC运行时和Method Swizzing的小实践]]></title>
+    <link href="http://wxgbridgeq.github.io/blog/2015/07/23/oc-runtime-practice/"/>
+    <updated>2015-07-23T00:35:28+08:00</updated>
+    <id>http://wxgbridgeq.github.io/blog/2015/07/23/oc-runtime-practice</id>
+    <content type="html"><![CDATA[<h2>起因</h2>
+
+<p>最近练习一个项目，经典的UITabBarController加UINavigationController的组合，茫茫多得页面需要设置一个统一的背景色，起初在每个控制器的viewDidLoad方法中都加上这么一段：</p>
+
+<pre><code class="objc">self.view.backgroundColor = WXGGlobalBackgroundColor; // 设置全局背景色
+</code></pre>
+
+<p>可是随着开发的进行，控制器和界面越来越多，每一个控制器都要写这么一句同样的代码让我感觉很烦，于是开始寻找一劳永逸的办法。经旁人指点，这其实跟我们想要黑盒测试一个方法一样，不管控制器的viewDidLoad方法做了什么，最后都给他加上设置背景色的代码就OK了。于是马上想到用OC运行时中的Method Swizzing来搞。</p>
+
+<!--more-->
+
+
+<h2>经过</h2>
+
+<p>有了解决问题的思路，剩下的事就很简单了。我就直接贴代码了：</p>
+
+<pre><code>// UIViewController+Extension.h
+#import &lt;UIKit/UIKit.h&gt;
+@interface UIViewController (Extension)
+@end
+//
+// UIViewController+Extension.m
+#import "UIViewController+Extension.h"
+#import &lt;objc/runtime.h&gt;
+@implementation UIViewController (Extension)
++ (void)load {
+    static dispatch_once_t onceToken;
+    dispatch_once(&amp;onceToken, ^{
+        Method originalMethod = class_getInstanceMethod([self class], @selector(viewDidLoad));
+        Method swizzledMethod = class_getInstanceMethod([self class], @selector(swizzled_viewDidLoad));
+        BOOL didAddMethod = class_addMethod([self class], @selector(viewDidLoad), method_getImplementation(swizzledMethod), method_getTypeEncoding(swizzledMethod));
+        if (didAddMethod) {
+            class_replaceMethod([self class], @selector(swizzled_viewDidLoad), method_getImplementation(originalMethod), method_getTypeEncoding(originalMethod));
+        } else {
+            method_exchangeImplementations(originalMethod, swizzledMethod);
+        }
+    });
+}
+- (void)swizzled_viewDidLoad {
+    [self swizzled_viewDidLoad];
+//    self.view.backgroundColor = WXGGlobalBackgroundColor;
+//    NSLog(@"%@ loaded", self);
+    if (![self isKindOfClass:NSClassFromString(@"UIInputWindowController")]) {
+        self.view.backgroundColor = WXGGlobalBackgroundColor;
+    }
+}
+@end
+</code></pre>
+
+<p>关于Method Swizzing的使用和最佳实践，还是推荐去看Mattt大神的文章吧，链接在<a href="http://nshipster.com/method-swizzling/">这里</a>，英文不好的同学可以看南峰子前辈翻译好的，文章链接在<a href="http://southpeak.github.io/blog/2014/11/06/objective-c-runtime-yun-xing-shi-zhi-si-:method-swizzling/">这里</a>。</p>
+
+<p>Method Swizzing的用法并不难，我就不过多解释了。说一下碰到的问题：第一次写完测试运行的时候，发现模拟器整个界面只有纯色一片，看不到任何控件，进调试工具一看，所有控件都在也都正常，而且在模拟器上点击对应控件的位置，仍然能够触发事件，整个界面就好像被人为涂了一层颜色一样。一时不知该怎么解决，只好NSLog一下，看看都有哪些控制器触发了viewDidLoad方法，然后就真的发现了一个奇怪的家伙：</p>
+
+<pre><code>// 省略上面的输出结果
+&lt;UIInputWindowController: 0x7f8a54060400&gt; loaded
+</code></pre>
+
+<p>而且这个家伙还是在最后一个，顿时对它怀疑大增，弄不好就是这家伙弄了个全屏的view给我涂在了屏幕上面。接下来就测试一下是不是它搞的鬼，代码同上面的最终代码，最后测试运行发现排除掉它之后界面立马正常了，真的就是它搞的鬼。</p>
+
+<h2>结果</h2>
+
+<p>最后只能去查这个<em>UIInputWindowController</em>到底是个什么东西，可惜没有查到直接的结果，只知道它是一个苹果的私有API，而且网上已经有人用运行时技术列出了它所包含的成员变量和方法。至于它到底是做什么用的，我们可以从它的命名大致猜一下，多少应该是跟键盘输入有关。我们都知道弹出的键盘也是一个UIWindow对象，不过有别于我们经常使用的keyWindow，那么这些window对象谁来管理呢？可能这是一个思路。</p>
+
+<p>最近时间有限，要继续练习项目了，这个问题就暂时解决到这里，就算是一次对OC运行时和Method Swizzing的小实践吧。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[自己模仿的一个侧拉菜单的小Demo]]></title>
+    <link href="http://wxgbridgeq.github.io/blog/2015/07/06/slidemenu-demo/"/>
+    <updated>2015-07-06T08:23:03+08:00</updated>
+    <id>http://wxgbridgeq.github.io/blog/2015/07/06/slidemenu-demo</id>
+    <content type="html"><![CDATA[<p>学iOS开发也有段时间了，模仿写了一个简单实现侧拉菜单的小demo，供初学者共同学习、练习使用。</p>
+
+<p>项目地址：<a href="https://github.com/WXGBridgeQ/WXGSlideMenuDemo">WXGSlideMenuDemo</a></p>
+
+<p>实现效果如下：</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/SlideMenu.gif" alt="" /></p>
+
+<p>例子和做法参考了<em>RayWenderlich</em>上的<a href="http://www.raywenderlich.com/87268/3d-effect-taasky-swift">这篇文章</a>，推荐英文好的同学可以多去<a href="http://www.raywenderlich.com/">这里</a>自行学习。</p>
+
+<p><strong>7月7日更新：</strong></p>
+
+<ul>
+<li>修复了一个小bug（手动侧滑显示菜单后没有更改菜单是否显示的状态，导致有时按钮需要点击两次才能显示菜单</li>
+<li>之前的Demo是使用storyboard+自动布局实现的，这次重新写了一份使用纯代码+frame的方式实现该功能的Demo，更加用心，代码质量更好，关键知识点已加注释，希望能帮助到更多的初学者。</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+</feed>

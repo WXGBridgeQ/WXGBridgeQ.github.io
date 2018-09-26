@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[文章分类：octopress | BridgeQ的个人学习博客]]></title>
+  <link href="http://wxgbridgeq.github.io/blog/categories/octopress/atom.xml" rel="self"/>
+  <link href="http://wxgbridgeq.github.io/"/>
+  <updated>2018-09-26T22:53:03+08:00</updated>
+  <id>http://wxgbridgeq.github.io/</id>
+  <author>
+    <name><![CDATA[BridgeQ]]></name>
+    <email><![CDATA[wxg.bridgeq@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[使用Octopress搭建个人博客]]></title>
+    <link href="http://wxgbridgeq.github.io/blog/2015/05/15/octopress-personal-blog/"/>
+    <updated>2015-05-15T11:51:37+08:00</updated>
+    <id>http://wxgbridgeq.github.io/blog/2015/05/15/octopress-personal-blog</id>
+    <content type="html"><![CDATA[<p>作为一个iOS开发的新人，学习过程中看了许多大牛的技术博客，也聆听过多次<strong>每一个程序员都应该维护一个个人技术博客</strong>之类的教导，按耐不住终于决定开始搭建自己的个人学习博客。</p>
+
+<p>关于动态网站的搭建，需要学习网站前端、服务器端和后台数据库等技术，配合一些大公司提供的云服务，完全可以实现免费搭建自己的网站，当然如果数据或者访问量过大就需要付费来提升服务质量了。</p>
+
+<p>本文想讨论的是另一种看上去<code>反(geng)潮(zhuang)流(bi)</code>的做法，使用静态网页生成工具配合<a href="https://pages.github.com/">GitHub Pages</a>来搭建个人博客。<a href="http://jekyllrb.com/">Jekyll</a>应该是一个比较好的选择，<a href="http://octopress.org/">Octopress</a>则是在Jekyll的基础上帮你省去了许多麻烦的配置过程。所以我最终的选择是使用Octopress和GitHub Pages来搭建我个人的学习博客。</p>
+
+<!--more-->
+
+
+<p>Octopress和GitHub Pages的使用都可以去查看官方文档来学习，地址如下：</p>
+
+<ul>
+<li><a href="http://octopress.org/docs/">Octopress</a></li>
+<li><a href="https://pages.github.com/">GitHub Pages</a></li>
+</ul>
+
+
+<h2>准备工作</h2>
+
+<p>GitHub Pages的创建其实很简单，只需要申请一个GitHub账号，然后创建一个名称为<code>github_username.github.io</code>的代码仓库即可，<code>github_username</code>指的是你GitHub账号的名称，这样你就可以拥有一个域名为<code>github_username.github.io</code>的个人页面了。</p>
+
+<p>Octopress的安装需要以下前提条件：</p>
+
+<ol>
+<li>安装Git</li>
+<li>安装Ruby 1.9.3及以上版本</li>
+</ol>
+
+
+<p>由于使用OS X最新的10.10系统，这两样系统都已经自带安装过了，省去了些许麻烦。</p>
+
+<h2>安装Octopress</h2>
+
+<p>Octopress的安装过程总结如下：</p>
+
+<pre><code>git clone git://github.com/imathis/octopress.git octopress
+cd octopress
+sudo gem install bundler
+bundle install
+rake install
+</code></pre>
+
+<p>过程中需要注意的是，可能需要将gem源修改为国内淘宝源。</p>
+
+<blockquote><p>Ruby和RubyGem相关知识推荐到<a href="https://ruby-china.org/wiki">Ruby China社区</a>的wiki页面进行学习</p></blockquote>
+
+<h2>配置Octopress</h2>
+
+<p>安装完成后需要做的就是各种自定义配置工作，此部分工作可能略为繁琐。</p>
+
+<p>首先需要修改的是<code>_config.yml</code>文件，它是Octopress的主配置文件。其中，你可以设置博客网站的标题、副标题、作者姓名等，各项参数具体意义详见<a href="http://octopress.org/docs/configuring/">官方文档</a>。</p>
+
+<p>需要注意的是，其中<code>3rd Party Settings</code>这部分使用的第三方插件大多为国外服务，可能会造成网站访问延迟过高，比较好的解决办法就是将国外第三方插件服务全部关闭，选用国内同类替代服务产品。本文最后会有详细介绍。</p>
+
+<p>除了主配置文件的修改之外，其他配置工作主要是修改一些自定义模板文件，此部分文件主要存放在<code>source/_includes</code>路径下。</p>
+
+<p>其中需要注意的是<code>source/_includes/head.html</code>和<code>source/_includes/custom/head.html</code>这两个文件，将其中使用的googleapi替换为useso，原因同样是国内访问googleapi会严重影响网站的响应速度。此处感谢360提供的公共库服务，详情请进<a href="http://libs.useso.com">这里</a>。</p>
+
+<p>其他自定义配置可以根据Octopress的<a href="http://octopress.org/docs">官方文档</a>自行摸索。</p>
+
+<h2>部署Octopress</h2>
+
+<p>将Octopress部署到GitHub Pages上非常简单，在<code>octopress</code>目录下执行<code>rake setup_github_pages</code>命令，然后输入之前创建的GitHub Pages的项目地址，地址可以使用SSH或HTTPS URL中的任意一种方式。其中，SSH的本机配置详见<a href="https://help.github.com/articles/generating-ssh-keys/">这里</a>。</p>
+
+<p>之后就可以使用<code>rake deploy</code>命令，将每次写好的博客部署到GitHub Pages上了。</p>
+
+<h2>发表博客</h2>
+
+<p>在<code>octopress</code>目录下执行<code>rake new_post["文章标题"]</code>命令，会自动在<code>source/_posts</code>目录下产生对应名称的<code>markdown</code>文件（文章标题支持中文，但支持的不是很完美），然后使用任意Markdown编辑软件打开并编写文章即可。我选择的是<strong>Mou</strong>，如需了解请点<a href="http://25.io/mou/">这里</a>。</p>
+
+<p>文章写好后，使用<code>rake generate</code>命令可以将<code>markdown</code>文件自动解析成静态网页，使用<code>rake preview</code>命令可以本地预览页面，使用<code>rake deploy</code>命令即可将新文章发表到GitHub Pages的博客上。</p>
+
+<h2>高级配置</h2>
+
+<h4>配置侧边栏</h4>
+
+<p>在Octopress中配置侧边栏主要有两步操作，首先在<code>source/_includes/custom/asides</code>目录下新建一个html文件，然后将此文件路径添加到<code>_config.yml</code>文件的<code>default_asides</code>里面，注意文件的添加顺序。</p>
+
+<pre><code>default_asides: [custom/asides/about.html, custom/asides/category.html, asides/recent_posts.html]
+</code></pre>
+
+<p>Octopress要求添加的html文件必须写在&lt;section&gt;之间，并且使用&lt;h1&gt;作为标题。具体格式如下：</p>
+
+<pre><code>&lt;section&gt;
+  &lt;h1&gt;关于我的一些事&lt;/h1&gt;
+  &lt;p&gt;85后，石油行业工作者，编程爱好者，目前自学iOS开发中。&lt;/p&gt;
+  &lt;p&gt;新浪微博：&lt;a href="http://weibo.com/u/3194218471/" target="_blank"&gt;我是乔&lt;/a&gt;&lt;/p&gt;
+&lt;/section&gt;
+</code></pre>
+
+<h4>在侧边栏中显示文章分类</h4>
+
+<p>新版本的Octopress默认已经支持文章分类的生成，只要在每篇文章头部的<code>categories</code>声明里填写分类名称即可。</p>
+
+<p>如果想将文章分类显示到侧边栏中，做法参见上面的侧边栏配置。只不过在新建的<code>category.html</code>文件中，应填写如下代码：</p>
+
+<pre><code>// 下面代码中大括号是全角的，如果复制，请自行改为半角
+&lt;section&gt;
+  &lt;h1&gt;文章分类&lt;/h1&gt;
+  &lt;ul id="categories"&gt;
+    ｛% for category in site.categories %｝
+      &lt;li class="category"&gt;
+        &lt;a&gt;｛｛ category | first | category_link ｝｝ (｛｛ category | last | size ｝｝)&lt;/a&gt;
+      &lt;/li&gt;
+    ｛% endfor %｝
+  &lt;/ul&gt;
+&lt;/section&gt;
+</code></pre>
+
+<p>网上能搜索到的为Octopress添加分类功能的文章大多已经过时，还是推荐使用此段代码。</p>
+
+<h4>分享、评论功能</h4>
+
+<p>作为个人博客，分享和评论功能还是非常需要的，Octopress默认提供的全部都是国外服务，比如Facebook、Twitter、Google Plus、Disqus Comments等，不是很适合国内使用，接下来我们使用国内的分享、评论插件来替换。这里我选择的是<a href="http://www.jiathis.com">JiaThis</a>和<a href="http://www.uyan.cc">友言</a>。</p>
+
+<p>具体的添加过程也比较简单，我是参考了唐巧大神的这篇博客：
+<a href="http://www.devtang.com/blog/2012/02/10/setup-blog-based-on-github/">像写程序一样写博客：搭建基于github的博客</a>。</p>
+
+<ul>
+<li>首先，在<code>_config.yml</code>文件中增加一项：<code>weibo_share: true</code></li>
+<li>修改<code>source/_includes/post/sharing.html</code>文件，增加如下代码：</li>
+</ul>
+
+
+<pre><code>// 下面代码中大括号是全角的，如果复制，请自行改为半角
+｛% if site.weibo_share %｝
+  ｛% include post/weibo.html %｝
+｛% endif %｝
+</code></pre>
+
+<ul>
+<li>访问<a href="http://www.jiathis.com">JiaThis</a>，获取分享功能代码</li>
+<li>访问<a href="http://www.uyan.cc">友言</a>，获取评论功能代码</li>
+<li>将以上两步的代码都加入到<code>weibo.html</code>中即可</li>
+</ul>
+
+
+<h2>写在最后</h2>
+
+<p>终于完成了个人学习博客的搭建，整个过程自己研究了三天之久，当然收获也是不少，基本全写在这篇文章里了。</p>
+
+<p>接下来的时间会将自己iOS开发的学习过程记录下来，作为自己复习总结的一个过程，也作为一份分享留给大家，希望写博客真像那些大牛们说的一样，能给自己带来一份快乐和满意。</p>
+
+<p>最后的最后，推荐另外一篇唐巧大神的博客：
+<a href="http://blog.devtang.com/blog/2014/06/02/use-gitcafe-to-host-blog/">将博客从GitHub迁移到GitCafe</a>。</p>
+]]></content>
+  </entry>
+  
+</feed>

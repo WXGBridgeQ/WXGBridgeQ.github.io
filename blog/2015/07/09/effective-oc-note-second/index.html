@@ -1,0 +1,748 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Effective Objective-C 读书笔记(二) | 理解OC运行时 - BridgeQ的个人学习博客</title>
+  <meta name="author" content="BridgeQ">
+
+  
+  <meta name="description" content="Class 类型对象 OC本身是一种强类型语言，但其运行时功能让它又有了动态语言的特点。OC中对象的类型和对象所执行的方法都是在运行时阶段进行查找并确认的，这种机制被称为动态绑定。想要弄清楚运行时如何能够实现动态绑定机制，首先要了解OC中对象的本质。 OC是C语言的超集， &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://wxgbridgeq.github.io/blog/2015/07/09/effective-oc-note-second/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="BridgeQ的个人学习博客" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="/javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">BridgeQ的个人学习博客</a></h1>
+  
+    <h2>学习、记录、分享</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="sitesearch" value="wxgbridgeq.github.io">
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">首页</a></li>
+  <li><a href="/blog/archives">所有文章</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Effective Objective-C 读书笔记(二) | 理解OC运行时</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+2015年7月9日
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><h2>Class 类型对象</h2>
+
+<p>OC本身是一种强类型语言，但其运行时功能让它又有了动态语言的特点。OC中对象的类型和对象所执行的方法都是在运行时阶段进行查找并确认的，这种机制被称为动态绑定。想要弄清楚运行时如何能够实现动态绑定机制，首先要了解OC中对象的本质。</p>
+
+<p>OC是C语言的超集，所以OC中面向对象的功能在底层也是使用C语言来实现。我们在OC中使用的对象，通常指的是储存该对象内存地址的一个指针变量（Java中称为引用），因此我们在OC中声明对象时通常使用类型名称加一个<code>*</code>号，稍微了解C语言的人都知道<code>*</code>号代表该变量是一个指针变量。OC中还有一个特殊的类型<code>id</code>，它可以表示通用类型的OC对象，因为它本身就被定义为一种特殊的指针变量，所以不需要在id后面再加一个<code>*</code>号。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="bp">NSString</span> <span class="o">*</span><span class="n">someString</span> <span class="o">=</span> <span class="s">@&quot;Some String&quot;</span><span class="p">;</span>
+</span><span class='line'><span class="kt">id</span> <span class="n">otherString</span> <span class="o">=</span> <span class="s">@&quot;Other String&quot;</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="p">[</span><span class="n">someString</span> <span class="n">count</span><span class="p">];</span> <span class="c1">// 编译期报错</span>
+</span><span class='line'><span class="p">[</span><span class="n">otherString</span> <span class="n">count</span><span class="p">];</span> <span class="c1">// 运行时报错</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>使用上述两种方式声明对象，在语法意义上其实完全相同，因为对象的具体类型只在运行时才会被确认。唯一的区别在于，如果声明时使用了具体类型信息，编译器会在编译期间查找对象所能执行的方法，找不到就会报错；而<em>id</em>代表通用类型的对象，编译器默认它能够执行任何已存在的方法。</p>
+
+<!--more-->
+
+
+<p>我们可以在苹果官方的运行时库的头文件中查看<em>id</em>类型的定义：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="k">struct</span> <span class="n">objc_object</span> <span class="p">{</span>
+</span><span class='line'>    <span class="kt">Class</span> <span class="n">isa</span><span class="p">;</span>
+</span><span class='line'><span class="p">};</span>
+</span><span class='line'><span class="k">typedef</span> <span class="k">struct</span> <span class="n">objc_object</span> <span class="o">*</span><span class="kt">id</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>可以看出<em>id</em>本质是一个C语言结构体，该结构体只有一个Class类型的成员<code>isa</code>（取意is a，是一个），代表着对象所属的具体类型。其实在NSObject类的头文件中，同样声明有一个这样的实例变量<em>isa</em>。因此，可以说OC中任何对象，都会默认带有一个实例变量<em>isa</em>用来储存对象的具体类型信息。</p>
+
+<p>Class的定义也可以在运行时库的头文件中查看：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="k">struct</span> <span class="n">objc_class</span> <span class="p">{</span>
+</span><span class='line'>    <span class="kt">Class</span> <span class="n">isa</span><span class="p">;</span>
+</span><span class='line'>    <span class="kt">Class</span> <span class="n">super_class</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
+</span><span class='line'>    <span class="kt">long</span> <span class="n">version</span><span class="p">;</span>
+</span><span class='line'>    <span class="kt">long</span> <span class="n">info</span><span class="p">;</span>
+</span><span class='line'>    <span class="kt">long</span> <span class="n">instance_size</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">struct</span> <span class="n">objc_ivar_list</span> <span class="o">*</span><span class="n">ivars</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">struct</span> <span class="n">objc_method_list</span> <span class="o">**</span><span class="n">methodLists</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">struct</span> <span class="n">objc_cache</span> <span class="o">*</span><span class="n">cache</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">struct</span> <span class="n">objc_protocol_list</span> <span class="o">*</span><span class="n">protocols</span><span class="p">;</span>
+</span><span class='line'><span class="p">};</span>
+</span><span class='line'><span class="k">typedef</span> <span class="k">struct</span> <span class="n">objc_class</span> <span class="o">*</span><span class="kt">Class</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>此结构体可以储存类的诸多信息，例如类型名、父类类型、实例变量列表、方法列表等，这些信息被称作类的<code>元数据（metadata）</code>。该结构体也有一个Class类型的成员<em>isa</em>，说明Class本身也是一个OC对象（被称为类对象或类型对象），而它的对象类型（<em>isa</em>所指向的类型）被称为<code>元类（metaclass）</code>，元类中储存的是类对象的元数据，比如类方法就储存在这里。每个类可以有无数个对象，但仅有一个类对象，也仅有一个与之对应的元类。</p>
+
+<p>对象、类对象和元类的关系如下图所示：</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/eoc01.png" alt="" /></p>
+
+<p>由于类对象和<em>isa</em>指针的存在，OC中的所有对象都可以在运行时查找自己的真实类型，并确定自己所能执行的方法。当真正给对象发送一条消息（或称为调用方法）时，运行时机制会对该消息进行一系列复杂的处理，接下来我们就继续讨论运行时的消息处理。</p>
+
+<h2>Message Dispatch 消息派发</h2>
+
+<p>调用对象的某个方法（或称为给对象发送某个消息）是面向对象编程中最常使用的功能。在OC中，由于动态绑定机制使得程序直到运行时才能清楚那个方法需要被执行，甚至通过使用底层的运行时函数，就可以更改调用的方法或改变方法内部的功能实现，这些特性使得OC成为一门真正的动态语言。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="kt">id</span> <span class="n">returnValue</span> <span class="o">=</span> <span class="p">[</span><span class="n">someObject</span> <span class="nl">messageName</span><span class="p">:</span><span class="n">param</span><span class="p">];</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>OC的消息处理，在底层也是使用C语言函数来实现，与消息处理功能相对应的函数叫做<code>objc_msgSend</code>，该函数在头文件中的声明如下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="kt">id</span> <span class="n">objc_msgSend</span><span class="p">(</span><span class="kt">id</span> <span class="nb">self</span><span class="p">,</span> <span class="kt">SEL</span> <span class="n">op</span><span class="p">,</span> <span class="p">...)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>可以看出<em>objc_msgSend</em>是一个可变参数函数，其中第一个参数代表消息的接收者，第二个参数代表消息的选择器，后续参数表示消息发送时附带的参数。编译器在编译期间就会将发送消息的代码转换为<em>objc_msgSend</em>函数。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="kt">id</span> <span class="n">returnValue</span> <span class="o">=</span> <span class="n">objc_msgSend</span><span class="p">(</span><span class="n">someObject</span><span class="p">,</span> <span class="k">@selector</span><span class="p">(</span><span class="nl">messageName</span><span class="p">:),</span> <span class="n">param</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>在运行时阶段，<em>objc_msgSend</em>函数内部会根据消息的接收者和选择器来选择调用适当的方法。为完成此操作，<em>objc_msgSend</em>函数首先会根据消息接收者对象的isa指针找到它的真实类型，然后在该类对象的方法列表中查找是否有与当前选择器相对应的方法，如果有则跳转到该方法执行；如果没有找到，则会按照类的继承体系向上继续查找，一旦找到就跳转过去执行目标方法。当最终都没有找到与当前选择器相对应的方法时，运行时机制则会开启消息转发流程，我们接下来就继续讨论运行时的消息转发。</p>
+
+<h2>Message Forward 消息转发</h2>
+
+<p>消息转发流程比较复杂，主要分三个步骤，首先我们来看一张消息转发完整的流程图。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/eoc02.png" alt="" /></p>
+
+<h4>第一步</h4>
+
+<p>当消息派发流程最终在对象的类和父类中都没有找到对应选择器的方法时，就会开启消息转发流程。首先，第一步会先调用消息接收者所在类的<code>resolveInstanceMethod:</code>方法，该方法返回一个BOOL值，表示是否动态添加一个方法来响应当前消息选择器。如果发送的消息是一个类方法，则会调用另一个类似的方法<code>resolveClassMethod:</code>。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="p">+</span> <span class="p">(</span><span class="kt">BOOL</span><span class="p">)</span><span class="nf">resolveInstanceMethod:</span><span class="p">(</span><span class="kt">SEL</span><span class="p">)</span><span class="nv">sel</span><span class="p">;</span>
+</span><span class='line'><span class="p">+</span> <span class="p">(</span><span class="kt">BOOL</span><span class="p">)</span><span class="nf">resolveClassMethod:</span><span class="p">(</span><span class="kt">SEL</span><span class="p">)</span><span class="nv">sel</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>以上两个方法均声明在NSObject类中，如果消息接收者所在类重写了<code>resolveInstanceMethod:</code>方法并返回<em>YES</em>，也就意味着想要动态添加一个方法来响应当前的消息选择器，可以在重写的方法内使用<code>class_addMethod</code>函数来为当前类添加方法。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="kt">BOOL</span> <span class="n">class_addMethod</span><span class="p">(</span><span class="kt">Class</span> <span class="n">cls</span><span class="p">,</span> <span class="kt">SEL</span> <span class="n">name</span><span class="p">,</span> <span class="kt">IMP</span> <span class="n">imp</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">types</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>该函数第一个参数代表为哪个类添加方法，第二个参数是方法所对应的选择器，第三个参数是C语言的函数指针，用来指向待添加的方法，最后一个参数表示待添加方法的类型编码（详情可查看苹果官方文档：<a href="https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html#//apple_ref/doc/uid/TP40008048-CH100-SW1">Objective-C Runtime Programming Guide</a>）。</p>
+
+<h4>第二步</h4>
+
+<p>如果上一步过程中，并没有新方法能响应消息选择器，则会进入消息转发流程的第二步。在第二步中系统会调用当前消息接收者所在类的<code>forwardingTargetForSelector:</code>方法，用以询问能否将该条消息发送给其他接收者来处理，方法的返回值就代表这个新的接收者，如果不允许将消息转发给其他接收者则返回<em>nil</em>。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="p">-</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nf">forwardingTargetForSelector:</span><span class="p">(</span><span class="kt">SEL</span><span class="p">)</span><span class="nv">aSelector</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>利用这个方法，我们可以使用组合的方式模拟出多重继承的特性。比如可以在一个类中拥有一系列其他类型的属性，然后重写<code>forwardingTargetForSelector:</code>方法，根据这些属性所能响应的消息选择器返回对应的属性对象，这样在外界看起来，该类的对象就好像是能够处理多种不同类型的方法了。</p>
+
+<h4>第三步</h4>
+
+<p>如果<code>forwardingTargetForSelector:</code>方法的返回值为<em>nil</em>，那么消息转发机制还要继续进行最后一步。在这一步中，系统会将尚未处理的消息包装成一个<code>NSInvocation</code>对象，其内部包含与该消息相关的所有信息，比如消息的选择器、目标接收者、参数等。之后系统会调用消息接收者所在类的<code>forwardInvocation:</code>方法，并将生成的<code>NSInvocation</code>对象作为参数传入。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">forwardInvocation:</span><span class="p">(</span><span class="bp">NSInvocation</span> <span class="o">*</span><span class="p">)</span><span class="nv">anInvocation</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><code>forwardInvocation:</code>方法同样声明在NSObject类中，我们可以重写该方法的实现。比如将<code>NSInvocation</code>对象的<code>target</code>属性设置为其他接收者，此操作可以实现与上一步操作同样的效果，但明显在效率上没有第二步的操作高，所以很少有人在这一步中仅仅只是改变消息的接收者。<code>NSInvocation</code>类中还提供了许多属性和方法用于修改其对应方法的信息，比如可以修改方法的参数和返回值，或者直接更改消息选择器转而调用其他方法。</p>
+
+<p>如果消息接收者在这一步中仍然无法响应消息选择器，那么系统会自动调用<code>doesNotRecognizeSelector:</code>方法，该方法默认实现为抛出异常，也就是我们在开发中经常见到的<em>unrecognized selector sent to instance</em>。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="o">-</span><span class="p">[</span><span class="n">ViewController</span> <span class="n">count</span><span class="p">]</span><span class="o">:</span> <span class="n">unrecognized</span> <span class="n">selector</span> <span class="n">sent</span> <span class="n">to</span> <span class="n">instance</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h4>消息转发示例</h4>
+
+<p>现在再回头看我们之前消息转发完整的流程图，应该能够更清晰地了解系统执行每一步操作的目的和作用了。接下来我们用一个示例来演示如何利用消息转发机制来自定义一个字典类，该字典类的对象可以直接使用属性方式来存取内容。完整的示例代码如下。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="c1">// WXGAutoDictionary.h</span>
+</span><span class='line'><span class="cp">#import &lt;Foundation/Foundation.h&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">@interface</span> <span class="nc">WXGAutoDictionary</span> : <span class="bp">NSObject</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// 可供存储的属性，可以为任意OC对象</span>
+</span><span class='line'><span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">strong</span><span class="p">)</span> <span class="kt">id</span> <span class="n">obj</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">@end</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// WXGAutoDictionary.m</span>
+</span><span class='line'><span class="cp">#import &quot;WXGAutoDictionary.h&quot;</span>
+</span><span class='line'><span class="cp">#import &lt;objc/runtime.h&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">@interface</span> <span class="nc">WXGAutoDictionary</span> <span class="p">()</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">strong</span><span class="p">)</span> <span class="bp">NSMutableDictionary</span> <span class="o">*</span><span class="n">backStore</span><span class="p">;</span> <span class="c1">// 后台存储用字典</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">@end</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">@implementation</span> <span class="nc">WXGAutoDictionary</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">@dynamic</span> <span class="n">obj</span><span class="p">;</span> <span class="c1">// 禁止编译器自动生成getter和setter方法</span>
+</span><span class='line'>
+</span><span class='line'><span class="p">-</span> <span class="p">(</span><span class="kt">instancetype</span><span class="p">)</span><span class="nf">init</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="nb">self</span> <span class="o">=</span> <span class="p">[</span><span class="nb">super</span> <span class="n">init</span><span class="p">])</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">_backStore</span> <span class="o">=</span> <span class="l">@{}</span><span class="p">.</span><span class="n">mutableCopy</span><span class="p">;</span> <span class="c1">// 初始化字典</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="k">return</span> <span class="nb">self</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// 重写此方法，允许动态添加方法来响应指定的消息选择器</span>
+</span><span class='line'><span class="p">+</span> <span class="p">(</span><span class="kt">BOOL</span><span class="p">)</span><span class="nf">resolveInstanceMethod:</span><span class="p">(</span><span class="kt">SEL</span><span class="p">)</span><span class="nv">sel</span> <span class="p">{</span>
+</span><span class='line'>    <span class="bp">NSString</span> <span class="o">*</span><span class="n">selString</span> <span class="o">=</span> <span class="n">NSStringFromSelector</span><span class="p">(</span><span class="n">sel</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// 类型编码：v-&gt;void  @-&gt;OC对象  :-&gt;SEL选择器</span>
+</span><span class='line'>    <span class="c1">// 响应setter方法的选择器</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">([</span><span class="n">selString</span> <span class="nl">hasPrefix</span><span class="p">:</span><span class="s">@&quot;set&quot;</span><span class="p">])</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">class_addMethod</span><span class="p">(</span><span class="nb">self</span><span class="p">,</span> <span class="n">sel</span><span class="p">,</span> <span class="p">(</span><span class="kt">IMP</span><span class="p">)</span><span class="n">autoDictionarySetter</span><span class="p">,</span> <span class="s">&quot;v@:@&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span> <span class="c1">// 响应getter方法的选择器</span>
+</span><span class='line'>        <span class="n">class_addMethod</span><span class="p">(</span><span class="nb">self</span><span class="p">,</span> <span class="n">sel</span><span class="p">,</span> <span class="p">(</span><span class="kt">IMP</span><span class="p">)</span><span class="n">autoDictionaryGetter</span><span class="p">,</span> <span class="s">&quot;@@:&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">return</span> <span class="nb">YES</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// 处理setter方法的函数</span>
+</span><span class='line'><span class="kt">void</span> <span class="nf">autoDictionarySetter</span><span class="p">(</span><span class="kt">id</span> <span class="nb">self</span><span class="p">,</span> <span class="kt">SEL</span> <span class="n">sel</span><span class="p">,</span> <span class="kt">id</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">WXGAutoDictionary</span> <span class="o">*</span><span class="n">autoDict</span> <span class="o">=</span> <span class="p">(</span><span class="n">WXGAutoDictionary</span> <span class="o">*</span><span class="p">)</span><span class="nb">self</span><span class="p">;</span>
+</span><span class='line'>    <span class="bp">NSMutableDictionary</span> <span class="o">*</span><span class="n">backStore</span> <span class="o">=</span> <span class="n">autoDict</span><span class="p">.</span><span class="n">backStore</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="bp">NSString</span> <span class="o">*</span><span class="n">selString</span> <span class="o">=</span> <span class="n">NSStringFromSelector</span><span class="p">(</span><span class="n">sel</span><span class="p">);</span>
+</span><span class='line'>    <span class="bp">NSMutableString</span> <span class="o">*</span><span class="n">key</span> <span class="o">=</span> <span class="n">selString</span><span class="p">.</span><span class="n">mutableCopy</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">[</span><span class="n">key</span> <span class="nl">deleteCharactersInRange</span><span class="p">:</span><span class="n">NSMakeRange</span><span class="p">(</span><span class="n">key</span><span class="p">.</span><span class="n">length</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)];</span>
+</span><span class='line'>    <span class="p">[</span><span class="n">key</span> <span class="nl">deleteCharactersInRange</span><span class="p">:</span><span class="n">NSMakeRange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">)];</span>
+</span><span class='line'>    <span class="p">[</span><span class="n">key</span> <span class="nl">replaceCharactersInRange</span><span class="p">:</span><span class="n">NSMakeRange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="nl">withString</span><span class="p">:[[</span><span class="n">key</span> <span class="nl">substringToIndex</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="n">lowercaseString</span><span class="p">]];</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>        <span class="p">[</span><span class="n">backStore</span> <span class="nl">setObject</span><span class="p">:</span><span class="n">value</span> <span class="nl">forKey</span><span class="p">:</span><span class="n">key</span><span class="p">];</span>
+</span><span class='line'>    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class='line'>        <span class="p">[</span><span class="n">backStore</span> <span class="nl">removeObjectForKey</span><span class="p">:</span><span class="n">key</span><span class="p">];</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// 处理getter方法的函数</span>
+</span><span class='line'><span class="kt">id</span> <span class="nf">autoDictionaryGetter</span><span class="p">(</span><span class="kt">id</span> <span class="nb">self</span><span class="p">,</span> <span class="kt">SEL</span> <span class="n">sel</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">WXGAutoDictionary</span> <span class="o">*</span><span class="n">autoDict</span> <span class="o">=</span> <span class="p">(</span><span class="n">WXGAutoDictionary</span> <span class="o">*</span><span class="p">)</span><span class="nb">self</span><span class="p">;</span>
+</span><span class='line'>    <span class="bp">NSMutableDictionary</span> <span class="o">*</span><span class="n">backStore</span> <span class="o">=</span> <span class="n">autoDict</span><span class="p">.</span><span class="n">backStore</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="bp">NSString</span> <span class="o">*</span><span class="n">key</span> <span class="o">=</span> <span class="n">NSStringFromSelector</span><span class="p">(</span><span class="n">sel</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">return</span> <span class="p">[</span><span class="n">backStore</span> <span class="nl">objectForKey</span><span class="p">:</span><span class="n">key</span><span class="p">];</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">@end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>在外部使用该类非常简单，示例代码如下。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="c1">//  main.m</span>
+</span><span class='line'><span class="cp">#import &lt;Foundation/Foundation.h&gt;</span>
+</span><span class='line'><span class="cp">#import &quot;WXGAutoDictionary.h&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">@autoreleasepool</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">WXGAutoDictionary</span> <span class="o">*</span><span class="n">dict</span> <span class="o">=</span> <span class="p">[[</span><span class="n">WXGAutoDictionary</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+</span><span class='line'>        <span class="n">dict</span><span class="p">.</span><span class="n">obj</span> <span class="o">=</span> <span class="p">[</span><span class="bp">NSDate</span> <span class="n">date</span><span class="p">];</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">NSLog</span><span class="p">(</span><span class="s">@&quot;%@&quot;</span><span class="p">,</span> <span class="n">dict</span><span class="p">.</span><span class="n">obj</span><span class="p">);</span> <span class="c1">// 控制台输出当前日期</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>在程序开始运行后，<em>dict</em>对象所在的类中并没有响应setter和getter选择器的方法，消息派发阶段无法在类对象的方法列表中找到合适的方法，所以会进入消息转发流程。我们在<code>resolveInstanceMethod:</code>方法中返回<em>YES</em>，并为不同选择器指定了不同的方法去处理，从而实现通过属性的setter和getter方法对字典进行存取操作。当有另一个类型的属性需要使用同样的功能时，只需在<code>WXGAutoDictionary</code>类中添加属性，并将属性声明为<code>@dynamic</code>即可，属性的存取操作会由运行时系统动态指定方法来完成。</p>
+
+<h2>Method Swizzing 方法调配</h2>
+
+<p>我们已经了解了OC中对象的类型和消息处理机制，这些有助于我们进一步了解OC运行时的其他功能和特性。接下来就介绍其中一种叫做<code>Method Swizzing（方法调配）</code>的技术，该技术经常被称为iOS开发中的黑魔法。</p>
+
+<p>在介绍方法调配技术之前，我们首先来了解一下OC中方法和消息选择器之间的关系，因为我们经常会将他们混为一谈。在运行时头文件中，我们可以找到方法的底层结构定义。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="k">struct</span> <span class="n">objc_method</span> <span class="p">{</span>
+</span><span class='line'>    <span class="kt">SEL</span> <span class="n">method_name</span><span class="p">;</span>
+</span><span class='line'>    <span class="kt">char</span> <span class="o">*</span><span class="n">method_types</span><span class="p">;</span>
+</span><span class='line'>    <span class="kt">IMP</span> <span class="n">method_imp</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>可以看出，每一个方法内部都包含三个成员，第一个是选择器代表方法的名字，第二个是方法的类型，其值是一个C语言字符串，可以参考前文讲过类型编码，最后一个是C语言中的函数指针，用以指向方法具体执行的函数。我们可以把方法的内部结构理解为每一个<em>SEL</em>选择器（可以当做是方法名）对应一个具体的<em>IMP</em>函数（可以当做是方法的实现），这也是<em>SEL</em>被称为选择器的原因。这样我们就可以更加清楚地理解消息派发时，系统是如何根据消息选择器来查找对应的方法并跳转到方法的具体实现的了。</p>
+
+<p>首先，当对象接收到某个消息时，编译器首先将代码转换为<em>objc_msgSend</em>函数，并将消息的接收者和选择器当做函数的参数传入，接下来系统会根据接收者的<em>isa</em>指针找到它所对应的类，在类的元数据信息中找到该类所拥有的方法列表，然后遍历方法列表，将每一个方法内部的<em>SEL</em>选择器同传入的消息选择器进行匹配，当找到相同的选择器后，就根据方法内部的<em>IMP</em>函数指针跳转到方法的具体实现。当然，为了提高方法多次执行的效率，系统会将遍历查询的结果缓存起来，储存在类的元数据信息中，此处就不再继续深入讨论。</p>
+
+<p>了解清楚选择器和方法实现之间的一对一关系后，我们接下来开始介绍方法调配技术，它其实就是利用运行时提供的函数来动态修改选择器和方法实现之间的对应关系的一种技术。利用这种技术，我们可以在运行时为某个类添加选择器或更改选择器所对应的方法实现，甚至可以更换两个已有选择器所对应的方法实现，从而实现一种极其诡异的效果。下面就写一段示例程序，通过方法调配技术来更换NSString类的大小写转换方法的实现（仅供娱乐使用）。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="c1">//  main.m</span>
+</span><span class='line'><span class="cp">#import &lt;Foundation/Foundation.h&gt;</span>
+</span><span class='line'><span class="cp">#import &lt;objc/runtime.h&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">@autoreleasepool</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">Method</span> <span class="n">lowercase</span> <span class="o">=</span> <span class="n">class_getInstanceMethod</span><span class="p">([</span><span class="bp">NSString</span> <span class="k">class</span><span class="p">],</span> <span class="k">@selector</span><span class="p">(</span><span class="n">lowercaseString</span><span class="p">));</span>
+</span><span class='line'>        <span class="n">Method</span> <span class="n">uppercase</span> <span class="o">=</span> <span class="n">class_getInstanceMethod</span><span class="p">([</span><span class="bp">NSString</span> <span class="k">class</span><span class="p">],</span> <span class="k">@selector</span><span class="p">(</span><span class="n">uppercaseString</span><span class="p">));</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">method_exchangeImplementations</span><span class="p">(</span><span class="n">lowercase</span><span class="p">,</span> <span class="n">uppercase</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">NSLog</span><span class="p">(</span><span class="s">@&quot;%@ -- %@&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s">@&quot;AbCd&quot;</span> <span class="n">lowercaseString</span><span class="p">],</span> <span class="p">[</span><span class="s">@&quot;AbCd&quot;</span> <span class="n">uppercaseString</span><span class="p">]);</span>
+</span><span class='line'>        <span class="c1">// 输出结果：ABCD -- abcd</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>可以看到<code>lowercaseString</code>方法返回的是大写字母，而<code>uppercaseString</code>方法返回了小写字母。</p>
+
+<p>方法调配技术的作用肯定不在于此，那么开发者通常如何使用这种技术呢？在总结方法调配技术的用处之前，我们先再来看一个示例程序。同样以NSString类为例，我们为其<code>lowercaseString</code>方法增加一些日志输出功能（不改变方法名，只是更改方法的实现）。你可能第一时间想到用继承来实现该需求，然而当项目中有多个类需要同样需求时，你需要每个类都去继承一下，然后还要保证别人都是去用你的子类而不是原本的父类，这样显然并不是一种很好的解决办法。此时我们就可以尝试使用方法调配技术，完整的示例代码如下。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="c1">//  NSString+Logging.h</span>
+</span><span class='line'><span class="cp">#import &lt;Foundation/Foundation.h&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">@interface</span> <span class="bp">NSString</span> <span class="nl">(Logging)</span>
+</span><span class='line'>
+</span><span class='line'><span class="p">-</span> <span class="p">(</span><span class="bp">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nf">lowercaseStringWithLogging</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">@end</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">//  NSString+Logging.m</span>
+</span><span class='line'><span class="cp">#import &quot;NSString+Logging.h&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">@implementation</span> <span class="bp">NSString</span> <span class="nl">(Logging)</span>
+</span><span class='line'>
+</span><span class='line'><span class="p">-</span> <span class="p">(</span><span class="bp">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nf">lowercaseStringWithLogging</span> <span class="p">{</span>
+</span><span class='line'>    <span class="bp">NSString</span> <span class="o">*</span><span class="n">lowercaseString</span> <span class="o">=</span> <span class="p">[</span><span class="nb">self</span> <span class="n">lowercaseStringWithLogging</span><span class="p">];</span>
+</span><span class='line'>    <span class="n">NSLog</span><span class="p">(</span><span class="s">@&quot;%@ -&gt; %@&quot;</span><span class="p">,</span> <span class="nb">self</span><span class="p">,</span> <span class="n">lowercaseString</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">return</span> <span class="n">lowercaseString</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">//  main.m</span>
+</span><span class='line'><span class="cp">#import &lt;Foundation/Foundation.h&gt;</span>
+</span><span class='line'><span class="cp">#import &lt;objc/runtime.h&gt;</span>
+</span><span class='line'><span class="cp">#import &quot;NSString+Logging.h&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+</span><span class='line'>    <span class="k">@autoreleasepool</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">Method</span> <span class="n">lowercase</span> <span class="o">=</span> <span class="n">class_getInstanceMethod</span><span class="p">([</span><span class="bp">NSString</span> <span class="k">class</span><span class="p">],</span> <span class="k">@selector</span><span class="p">(</span><span class="n">lowercaseString</span><span class="p">));</span>
+</span><span class='line'>        <span class="n">Method</span> <span class="n">lowercaselogging</span> <span class="o">=</span> <span class="n">class_getInstanceMethod</span><span class="p">([</span><span class="bp">NSString</span> <span class="k">class</span><span class="p">],</span> <span class="k">@selector</span><span class="p">(</span><span class="n">lowercaseStringWithLogging</span><span class="p">));</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">method_exchangeImplementations</span><span class="p">(</span><span class="n">lowercase</span><span class="p">,</span> <span class="n">lowercaselogging</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="p">[</span><span class="s">@&quot;AbCd&quot;</span> <span class="n">lowercaseString</span><span class="p">];</span>
+</span><span class='line'>        <span class="c1">// 输出结果：AbCd -&gt; abcd</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'><span class="k">@end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>我们为NSString类添加一个分类，在分类中添加一个带日志输出功能的方法，注意在该方法的实现中，我们调用了这句代码<code>[self lowercaseStringWithLogging]</code>，这看上去应该会使程序陷入死循环，但不要忘了，我们在<em>main</em>方法中利用方法调配技术来交换原有类的方法和分类方法的实现，所以这句代码实际上执行的是原本的类中的实现，并不会造成死循环。</p>
+
+<p>通过上文的示例程序，我们可以为那些完全不知道具体实现的方法（也称为黑盒方法）增加日志输出功能，这常用于程序的调试。实际上，还有很多与此类似的需求，既要增加功能，又需要与原有方法联系很紧密，例如增加权限验证和缓存功能，这类需求常被人们称为<code>Aspect（切面）</code>，与之对应的编程概念叫做<code>Aspect Oriented Programming（面向切面编程）</code>。面向切面编程的概念有许多优点，它将那些琐碎的事物从主逻辑中分离出来，并将它们附加在与主逻辑相对应的横向切面中连带执行，是对面向对象编程的一种补充。在OC中，我们可以利用运行时特性和方法调配技术来实现这类面向切面编程的需求。</p>
+
+<h2>写在最后</h2>
+
+<p>本文主要是自己整理的读书笔记，并重新整理归纳，内容只是OC运行时的一部分，只为理顺OC运行时的基本概念，从而为理解其他运行时特性打下基础。比如OC中经常使用的KVC和KVO，在理解本文这些运行时基本概念后，应该更有助于理解它们的实现原理，感兴趣的可以参考以下文章：</p>
+
+<ul>
+<li><a href="http://tech.glowing.com/cn/implement-kvo/">如何自己动手实现 KVO</a></li>
+<li><a href="http://www.jianshu.com/p/25a319aee33d">Objective-C特性：Runtime</a></li>
+<li><a href="http://blog.csdn.net/wzzvictory/article/details/9674431">KVC/KVO原理详解及编程指南</a></li>
+</ul>
+
+
+<p>还有OC运行时中的<code>Associated Object（关联对象）</code>概念，可以参考以下文章：</p>
+
+<ul>
+<li><a href="http://www.jianshu.com/p/3cbab68fb856">给分类（Category）添加属性</a></li>
+</ul>
+
+
+<p>其他参考阅读：</p>
+
+<ul>
+<li><a href="https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Introduction/Introduction.html#//apple_ref/doc/uid/TP40008048-CH1-SW1">Objective-C Runtime Programming Guide</a></li>
+<li><a href="http://book.douban.com/subject/25829244/">Effective Objective C 2.0</a></li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard"><span class="fn">BridgeQ</span></span>
+
+      
+
+
+
+
+2015年7月9日
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/objective-c/'>objective-c</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/07/06/slidemenu-demo/" title="Previous Post: 自己模仿的一个侧拉菜单的小Demo">&laquo; 自己模仿的一个侧拉菜单的小Demo</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2015/07/21/protocol-oriented-programming-first/" title="Next Post: Swift面向协议编程初探 | WWDC 2015学习笔记">Swift面向协议编程初探 | WWDC 2015学习笔记 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>最新文章</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/08/10/custom-transition-animation/">自定义控制器转场动画及下拉菜单的小Demo | AppCoda翻译系列</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/09/simple-qzone/">简单模仿iPad版QQ空间界面的小Demo</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/23/oc-runtime-practice/">一次关于OC运行时和Method Swizzing的小实践</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/21/protocol-oriented-programming-first/">Swift面向协议编程初探 | WWDC 2015学习笔记</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/09/effective-oc-note-second/">Effective Objective-C 读书笔记(二) | 理解OC运行时</a>
+      </li>
+    
+  </ul>
+</section>
+<section>
+  <h1>文章分类</h1>
+  <ul id="categories">
+    
+      <li class="category">
+        <a class='category' href='/blog/categories/octopress/'>octopress</a> (1)
+      </li>
+    
+      <li class="category">
+        <a class='category' href='/blog/categories/objective-c/'>objective-c</a> (2)
+      </li>
+    
+      <li class="category">
+        <a class='category' href='/blog/categories/ji-zhu-wen-zhang-fan-yi/'>技术文章翻译</a> (3)
+      </li>
+    
+      <li class="category">
+        <a class='category' href='/blog/categories/ios/'>ios</a> (3)
+      </li>
+    
+      <li class="category">
+        <a class='category' href='/blog/categories/swift/'>swift</a> (1)
+      </li>
+    
+  </ul>
+</section>
+<section>
+  <h1>关于作者</h1>
+  <p>85后程序员，<a href="http://swift.gg/" target="_blank">SwiftGG</a> 翻译组成员。</p>
+  <p>
+  	GitHub：<a href="https://github.com/WXGBridgeQ" target="_blank">WXGBridgeQ</a></br>
+  	新浪微博：<a href="http://weibo.com/coderchow" target="_blank">我是乔忘记疯狂</a></br>
+  </p>
+</section>
+<section>
+  <h1>友情链接</h1>
+  <p>
+  	<a href="http://swift.gg/" target="_blank">SwiftGG翻译组 - 高质量的Swift译文网站</a></br>
+  	<a href="http://www.swiftyper.com/" target="_blank">221B BAKER STREET</a></br>
+  	<a href="http://triplecc.github.io/" target="_blank">tripleCC的技术博客</a></br>
+  </p>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2018 - BridgeQ -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

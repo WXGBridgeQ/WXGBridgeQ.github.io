@@ -1,0 +1,472 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[文章分类：objective-c | BridgeQ的个人学习博客]]></title>
+  <link href="http://wxgbridgeq.github.io/blog/categories/objective-c/atom.xml" rel="self"/>
+  <link href="http://wxgbridgeq.github.io/"/>
+  <updated>2018-09-26T22:53:03+08:00</updated>
+  <id>http://wxgbridgeq.github.io/</id>
+  <author>
+    <name><![CDATA[BridgeQ]]></name>
+    <email><![CDATA[wxg.bridgeq@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Effective Objective-C 读书笔记(二) | 理解OC运行时]]></title>
+    <link href="http://wxgbridgeq.github.io/blog/2015/07/09/effective-oc-note-second/"/>
+    <updated>2015-07-09T16:31:43+08:00</updated>
+    <id>http://wxgbridgeq.github.io/blog/2015/07/09/effective-oc-note-second</id>
+    <content type="html"><![CDATA[<h2>Class 类型对象</h2>
+
+<p>OC本身是一种强类型语言，但其运行时功能让它又有了动态语言的特点。OC中对象的类型和对象所执行的方法都是在运行时阶段进行查找并确认的，这种机制被称为动态绑定。想要弄清楚运行时如何能够实现动态绑定机制，首先要了解OC中对象的本质。</p>
+
+<p>OC是C语言的超集，所以OC中面向对象的功能在底层也是使用C语言来实现。我们在OC中使用的对象，通常指的是储存该对象内存地址的一个指针变量（Java中称为引用），因此我们在OC中声明对象时通常使用类型名称加一个<code>*</code>号，稍微了解C语言的人都知道<code>*</code>号代表该变量是一个指针变量。OC中还有一个特殊的类型<code>id</code>，它可以表示通用类型的OC对象，因为它本身就被定义为一种特殊的指针变量，所以不需要在id后面再加一个<code>*</code>号。</p>
+
+<pre><code class="objc">NSString *someString = @"Some String";
+id otherString = @"Other String";
+
+[someString count]; // 编译期报错
+[otherString count]; // 运行时报错
+</code></pre>
+
+<p>使用上述两种方式声明对象，在语法意义上其实完全相同，因为对象的具体类型只在运行时才会被确认。唯一的区别在于，如果声明时使用了具体类型信息，编译器会在编译期间查找对象所能执行的方法，找不到就会报错；而<em>id</em>代表通用类型的对象，编译器默认它能够执行任何已存在的方法。</p>
+
+<!--more-->
+
+
+<p>我们可以在苹果官方的运行时库的头文件中查看<em>id</em>类型的定义：</p>
+
+<pre><code>struct objc_object {
+    Class isa;
+};
+typedef struct objc_object *id;
+</code></pre>
+
+<p>可以看出<em>id</em>本质是一个C语言结构体，该结构体只有一个Class类型的成员<code>isa</code>（取意is a，是一个），代表着对象所属的具体类型。其实在NSObject类的头文件中，同样声明有一个这样的实例变量<em>isa</em>。因此，可以说OC中任何对象，都会默认带有一个实例变量<em>isa</em>用来储存对象的具体类型信息。</p>
+
+<p>Class的定义也可以在运行时库的头文件中查看：</p>
+
+<pre><code>struct objc_class {
+    Class isa;
+    Class super_class;
+    const char *name;
+    long version;
+    long info;
+    long instance_size;
+    struct objc_ivar_list *ivars;
+    struct objc_method_list **methodLists;
+    struct objc_cache *cache;
+    struct objc_protocol_list *protocols;
+};
+typedef struct objc_class *Class;
+</code></pre>
+
+<p>此结构体可以储存类的诸多信息，例如类型名、父类类型、实例变量列表、方法列表等，这些信息被称作类的<code>元数据（metadata）</code>。该结构体也有一个Class类型的成员<em>isa</em>，说明Class本身也是一个OC对象（被称为类对象或类型对象），而它的对象类型（<em>isa</em>所指向的类型）被称为<code>元类（metaclass）</code>，元类中储存的是类对象的元数据，比如类方法就储存在这里。每个类可以有无数个对象，但仅有一个类对象，也仅有一个与之对应的元类。</p>
+
+<p>对象、类对象和元类的关系如下图所示：</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/eoc01.png" alt="" /></p>
+
+<p>由于类对象和<em>isa</em>指针的存在，OC中的所有对象都可以在运行时查找自己的真实类型，并确定自己所能执行的方法。当真正给对象发送一条消息（或称为调用方法）时，运行时机制会对该消息进行一系列复杂的处理，接下来我们就继续讨论运行时的消息处理。</p>
+
+<h2>Message Dispatch 消息派发</h2>
+
+<p>调用对象的某个方法（或称为给对象发送某个消息）是面向对象编程中最常使用的功能。在OC中，由于动态绑定机制使得程序直到运行时才能清楚那个方法需要被执行，甚至通过使用底层的运行时函数，就可以更改调用的方法或改变方法内部的功能实现，这些特性使得OC成为一门真正的动态语言。</p>
+
+<pre><code>id returnValue = [someObject messageName:param];
+</code></pre>
+
+<p>OC的消息处理，在底层也是使用C语言函数来实现，与消息处理功能相对应的函数叫做<code>objc_msgSend</code>，该函数在头文件中的声明如下：</p>
+
+<pre><code>id objc_msgSend(id self, SEL op, ...)
+</code></pre>
+
+<p>可以看出<em>objc_msgSend</em>是一个可变参数函数，其中第一个参数代表消息的接收者，第二个参数代表消息的选择器，后续参数表示消息发送时附带的参数。编译器在编译期间就会将发送消息的代码转换为<em>objc_msgSend</em>函数。</p>
+
+<pre><code>id returnValue = objc_msgSend(someObject, @selector(messageName:), param);
+</code></pre>
+
+<p>在运行时阶段，<em>objc_msgSend</em>函数内部会根据消息的接收者和选择器来选择调用适当的方法。为完成此操作，<em>objc_msgSend</em>函数首先会根据消息接收者对象的isa指针找到它的真实类型，然后在该类对象的方法列表中查找是否有与当前选择器相对应的方法，如果有则跳转到该方法执行；如果没有找到，则会按照类的继承体系向上继续查找，一旦找到就跳转过去执行目标方法。当最终都没有找到与当前选择器相对应的方法时，运行时机制则会开启消息转发流程，我们接下来就继续讨论运行时的消息转发。</p>
+
+<h2>Message Forward 消息转发</h2>
+
+<p>消息转发流程比较复杂，主要分三个步骤，首先我们来看一张消息转发完整的流程图。</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/eoc02.png" alt="" /></p>
+
+<h4>第一步</h4>
+
+<p>当消息派发流程最终在对象的类和父类中都没有找到对应选择器的方法时，就会开启消息转发流程。首先，第一步会先调用消息接收者所在类的<code>resolveInstanceMethod:</code>方法，该方法返回一个BOOL值，表示是否动态添加一个方法来响应当前消息选择器。如果发送的消息是一个类方法，则会调用另一个类似的方法<code>resolveClassMethod:</code>。</p>
+
+<pre><code>+ (BOOL)resolveInstanceMethod:(SEL)sel;
++ (BOOL)resolveClassMethod:(SEL)sel;
+</code></pre>
+
+<p>以上两个方法均声明在NSObject类中，如果消息接收者所在类重写了<code>resolveInstanceMethod:</code>方法并返回<em>YES</em>，也就意味着想要动态添加一个方法来响应当前的消息选择器，可以在重写的方法内使用<code>class_addMethod</code>函数来为当前类添加方法。</p>
+
+<pre><code>BOOL class_addMethod(Class cls, SEL name, IMP imp, const char *types)
+</code></pre>
+
+<p>该函数第一个参数代表为哪个类添加方法，第二个参数是方法所对应的选择器，第三个参数是C语言的函数指针，用来指向待添加的方法，最后一个参数表示待添加方法的类型编码（详情可查看苹果官方文档：<a href="https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html#//apple_ref/doc/uid/TP40008048-CH100-SW1">Objective-C Runtime Programming Guide</a>）。</p>
+
+<h4>第二步</h4>
+
+<p>如果上一步过程中，并没有新方法能响应消息选择器，则会进入消息转发流程的第二步。在第二步中系统会调用当前消息接收者所在类的<code>forwardingTargetForSelector:</code>方法，用以询问能否将该条消息发送给其他接收者来处理，方法的返回值就代表这个新的接收者，如果不允许将消息转发给其他接收者则返回<em>nil</em>。</p>
+
+<pre><code>- (id)forwardingTargetForSelector:(SEL)aSelector;
+</code></pre>
+
+<p>利用这个方法，我们可以使用组合的方式模拟出多重继承的特性。比如可以在一个类中拥有一系列其他类型的属性，然后重写<code>forwardingTargetForSelector:</code>方法，根据这些属性所能响应的消息选择器返回对应的属性对象，这样在外界看起来，该类的对象就好像是能够处理多种不同类型的方法了。</p>
+
+<h4>第三步</h4>
+
+<p>如果<code>forwardingTargetForSelector:</code>方法的返回值为<em>nil</em>，那么消息转发机制还要继续进行最后一步。在这一步中，系统会将尚未处理的消息包装成一个<code>NSInvocation</code>对象，其内部包含与该消息相关的所有信息，比如消息的选择器、目标接收者、参数等。之后系统会调用消息接收者所在类的<code>forwardInvocation:</code>方法，并将生成的<code>NSInvocation</code>对象作为参数传入。</p>
+
+<pre><code>- (void)forwardInvocation:(NSInvocation *)anInvocation;
+</code></pre>
+
+<p><code>forwardInvocation:</code>方法同样声明在NSObject类中，我们可以重写该方法的实现。比如将<code>NSInvocation</code>对象的<code>target</code>属性设置为其他接收者，此操作可以实现与上一步操作同样的效果，但明显在效率上没有第二步的操作高，所以很少有人在这一步中仅仅只是改变消息的接收者。<code>NSInvocation</code>类中还提供了许多属性和方法用于修改其对应方法的信息，比如可以修改方法的参数和返回值，或者直接更改消息选择器转而调用其他方法。</p>
+
+<p>如果消息接收者在这一步中仍然无法响应消息选择器，那么系统会自动调用<code>doesNotRecognizeSelector:</code>方法，该方法默认实现为抛出异常，也就是我们在开发中经常见到的<em>unrecognized selector sent to instance</em>。</p>
+
+<pre><code>-[ViewController count]: unrecognized selector sent to instance
+</code></pre>
+
+<h4>消息转发示例</h4>
+
+<p>现在再回头看我们之前消息转发完整的流程图，应该能够更清晰地了解系统执行每一步操作的目的和作用了。接下来我们用一个示例来演示如何利用消息转发机制来自定义一个字典类，该字典类的对象可以直接使用属性方式来存取内容。完整的示例代码如下。</p>
+
+<pre><code>// WXGAutoDictionary.h
+#import &lt;Foundation/Foundation.h&gt;
+
+@interface WXGAutoDictionary : NSObject
+
+// 可供存储的属性，可以为任意OC对象
+@property (nonatomic, strong) id obj;
+
+@end
+
+// WXGAutoDictionary.m
+#import "WXGAutoDictionary.h"
+#import &lt;objc/runtime.h&gt;
+
+@interface WXGAutoDictionary ()
+
+@property (nonatomic, strong) NSMutableDictionary *backStore; // 后台存储用字典
+
+@end
+
+@implementation WXGAutoDictionary
+
+@dynamic obj; // 禁止编译器自动生成getter和setter方法
+
+- (instancetype)init {
+    if (self = [super init]) {
+        _backStore = @{}.mutableCopy; // 初始化字典
+    }
+    return self;
+}
+
+// 重写此方法，允许动态添加方法来响应指定的消息选择器
++ (BOOL)resolveInstanceMethod:(SEL)sel {
+    NSString *selString = NSStringFromSelector(sel);
+
+    // 类型编码：v-&gt;void  @-&gt;OC对象  :-&gt;SEL选择器
+    // 响应setter方法的选择器
+    if ([selString hasPrefix:@"set"]) {
+        class_addMethod(self, sel, (IMP)autoDictionarySetter, "v@:@");
+    } else { // 响应getter方法的选择器
+        class_addMethod(self, sel, (IMP)autoDictionaryGetter, "@@:");
+    }
+
+    return YES;
+}
+
+// 处理setter方法的函数
+void autoDictionarySetter(id self, SEL sel, id value) {
+    WXGAutoDictionary *autoDict = (WXGAutoDictionary *)self;
+    NSMutableDictionary *backStore = autoDict.backStore;
+
+    NSString *selString = NSStringFromSelector(sel);
+    NSMutableString *key = selString.mutableCopy;
+    [key deleteCharactersInRange:NSMakeRange(key.length - 1, 1)];
+    [key deleteCharactersInRange:NSMakeRange(0, 3)];
+    [key replaceCharactersInRange:NSMakeRange(0, 1) withString:[[key substringToIndex:1] lowercaseString]];
+
+    if (value) {
+        [backStore setObject:value forKey:key];
+    } else {
+        [backStore removeObjectForKey:key];
+    }
+}
+
+// 处理getter方法的函数
+id autoDictionaryGetter(id self, SEL sel) {
+    WXGAutoDictionary *autoDict = (WXGAutoDictionary *)self;
+    NSMutableDictionary *backStore = autoDict.backStore;
+
+    NSString *key = NSStringFromSelector(sel);
+    return [backStore objectForKey:key];
+}
+
+@end
+</code></pre>
+
+<p>在外部使用该类非常简单，示例代码如下。</p>
+
+<pre><code>//  main.m
+#import &lt;Foundation/Foundation.h&gt;
+#import "WXGAutoDictionary.h"
+
+int main(int argc, const char * argv[]) {
+    @autoreleasepool {
+        WXGAutoDictionary *dict = [[WXGAutoDictionary alloc] init];
+        dict.obj = [NSDate date];
+
+        NSLog(@"%@", dict.obj); // 控制台输出当前日期
+    }
+    return 0;
+}
+</code></pre>
+
+<p>在程序开始运行后，<em>dict</em>对象所在的类中并没有响应setter和getter选择器的方法，消息派发阶段无法在类对象的方法列表中找到合适的方法，所以会进入消息转发流程。我们在<code>resolveInstanceMethod:</code>方法中返回<em>YES</em>，并为不同选择器指定了不同的方法去处理，从而实现通过属性的setter和getter方法对字典进行存取操作。当有另一个类型的属性需要使用同样的功能时，只需在<code>WXGAutoDictionary</code>类中添加属性，并将属性声明为<code>@dynamic</code>即可，属性的存取操作会由运行时系统动态指定方法来完成。</p>
+
+<h2>Method Swizzing 方法调配</h2>
+
+<p>我们已经了解了OC中对象的类型和消息处理机制，这些有助于我们进一步了解OC运行时的其他功能和特性。接下来就介绍其中一种叫做<code>Method Swizzing（方法调配）</code>的技术，该技术经常被称为iOS开发中的黑魔法。</p>
+
+<p>在介绍方法调配技术之前，我们首先来了解一下OC中方法和消息选择器之间的关系，因为我们经常会将他们混为一谈。在运行时头文件中，我们可以找到方法的底层结构定义。</p>
+
+<pre><code>struct objc_method {
+    SEL method_name;
+    char *method_types;
+    IMP method_imp;
+}
+</code></pre>
+
+<p>可以看出，每一个方法内部都包含三个成员，第一个是选择器代表方法的名字，第二个是方法的类型，其值是一个C语言字符串，可以参考前文讲过类型编码，最后一个是C语言中的函数指针，用以指向方法具体执行的函数。我们可以把方法的内部结构理解为每一个<em>SEL</em>选择器（可以当做是方法名）对应一个具体的<em>IMP</em>函数（可以当做是方法的实现），这也是<em>SEL</em>被称为选择器的原因。这样我们就可以更加清楚地理解消息派发时，系统是如何根据消息选择器来查找对应的方法并跳转到方法的具体实现的了。</p>
+
+<p>首先，当对象接收到某个消息时，编译器首先将代码转换为<em>objc_msgSend</em>函数，并将消息的接收者和选择器当做函数的参数传入，接下来系统会根据接收者的<em>isa</em>指针找到它所对应的类，在类的元数据信息中找到该类所拥有的方法列表，然后遍历方法列表，将每一个方法内部的<em>SEL</em>选择器同传入的消息选择器进行匹配，当找到相同的选择器后，就根据方法内部的<em>IMP</em>函数指针跳转到方法的具体实现。当然，为了提高方法多次执行的效率，系统会将遍历查询的结果缓存起来，储存在类的元数据信息中，此处就不再继续深入讨论。</p>
+
+<p>了解清楚选择器和方法实现之间的一对一关系后，我们接下来开始介绍方法调配技术，它其实就是利用运行时提供的函数来动态修改选择器和方法实现之间的对应关系的一种技术。利用这种技术，我们可以在运行时为某个类添加选择器或更改选择器所对应的方法实现，甚至可以更换两个已有选择器所对应的方法实现，从而实现一种极其诡异的效果。下面就写一段示例程序，通过方法调配技术来更换NSString类的大小写转换方法的实现（仅供娱乐使用）。</p>
+
+<pre><code>//  main.m
+#import &lt;Foundation/Foundation.h&gt;
+#import &lt;objc/runtime.h&gt;
+
+int main(int argc, const char * argv[]) {
+    @autoreleasepool {
+        Method lowercase = class_getInstanceMethod([NSString class], @selector(lowercaseString));
+        Method uppercase = class_getInstanceMethod([NSString class], @selector(uppercaseString));
+
+        method_exchangeImplementations(lowercase, uppercase);
+
+        NSLog(@"%@ -- %@", [@"AbCd" lowercaseString], [@"AbCd" uppercaseString]);
+        // 输出结果：ABCD -- abcd
+    }
+    return 0;
+}
+</code></pre>
+
+<p>可以看到<code>lowercaseString</code>方法返回的是大写字母，而<code>uppercaseString</code>方法返回了小写字母。</p>
+
+<p>方法调配技术的作用肯定不在于此，那么开发者通常如何使用这种技术呢？在总结方法调配技术的用处之前，我们先再来看一个示例程序。同样以NSString类为例，我们为其<code>lowercaseString</code>方法增加一些日志输出功能（不改变方法名，只是更改方法的实现）。你可能第一时间想到用继承来实现该需求，然而当项目中有多个类需要同样需求时，你需要每个类都去继承一下，然后还要保证别人都是去用你的子类而不是原本的父类，这样显然并不是一种很好的解决办法。此时我们就可以尝试使用方法调配技术，完整的示例代码如下。</p>
+
+<pre><code>//  NSString+Logging.h
+#import &lt;Foundation/Foundation.h&gt;
+
+@interface NSString (Logging)
+
+- (NSString *)lowercaseStringWithLogging;
+
+@end
+
+//  NSString+Logging.m
+#import "NSString+Logging.h"
+
+@implementation NSString (Logging)
+
+- (NSString *)lowercaseStringWithLogging {
+    NSString *lowercaseString = [self lowercaseStringWithLogging];
+    NSLog(@"%@ -&gt; %@", self, lowercaseString);
+    return lowercaseString;
+}
+
+//  main.m
+#import &lt;Foundation/Foundation.h&gt;
+#import &lt;objc/runtime.h&gt;
+#import "NSString+Logging.h"
+
+int main(int argc, const char * argv[]) {
+    @autoreleasepool {
+        Method lowercase = class_getInstanceMethod([NSString class], @selector(lowercaseString));
+        Method lowercaselogging = class_getInstanceMethod([NSString class], @selector(lowercaseStringWithLogging));
+
+        method_exchangeImplementations(lowercase, lowercaselogging);
+
+        [@"AbCd" lowercaseString];
+        // 输出结果：AbCd -&gt; abcd
+    }
+    return 0;
+}
+@end
+</code></pre>
+
+<p>我们为NSString类添加一个分类，在分类中添加一个带日志输出功能的方法，注意在该方法的实现中，我们调用了这句代码<code>[self lowercaseStringWithLogging]</code>，这看上去应该会使程序陷入死循环，但不要忘了，我们在<em>main</em>方法中利用方法调配技术来交换原有类的方法和分类方法的实现，所以这句代码实际上执行的是原本的类中的实现，并不会造成死循环。</p>
+
+<p>通过上文的示例程序，我们可以为那些完全不知道具体实现的方法（也称为黑盒方法）增加日志输出功能，这常用于程序的调试。实际上，还有很多与此类似的需求，既要增加功能，又需要与原有方法联系很紧密，例如增加权限验证和缓存功能，这类需求常被人们称为<code>Aspect（切面）</code>，与之对应的编程概念叫做<code>Aspect Oriented Programming（面向切面编程）</code>。面向切面编程的概念有许多优点，它将那些琐碎的事物从主逻辑中分离出来，并将它们附加在与主逻辑相对应的横向切面中连带执行，是对面向对象编程的一种补充。在OC中，我们可以利用运行时特性和方法调配技术来实现这类面向切面编程的需求。</p>
+
+<h2>写在最后</h2>
+
+<p>本文主要是自己整理的读书笔记，并重新整理归纳，内容只是OC运行时的一部分，只为理顺OC运行时的基本概念，从而为理解其他运行时特性打下基础。比如OC中经常使用的KVC和KVO，在理解本文这些运行时基本概念后，应该更有助于理解它们的实现原理，感兴趣的可以参考以下文章：</p>
+
+<ul>
+<li><a href="http://tech.glowing.com/cn/implement-kvo/">如何自己动手实现 KVO</a></li>
+<li><a href="http://www.jianshu.com/p/25a319aee33d">Objective-C特性：Runtime</a></li>
+<li><a href="http://blog.csdn.net/wzzvictory/article/details/9674431">KVC/KVO原理详解及编程指南</a></li>
+</ul>
+
+
+<p>还有OC运行时中的<code>Associated Object（关联对象）</code>概念，可以参考以下文章：</p>
+
+<ul>
+<li><a href="http://www.jianshu.com/p/3cbab68fb856">给分类（Category）添加属性</a></li>
+</ul>
+
+
+<p>其他参考阅读：</p>
+
+<ul>
+<li><a href="https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Introduction/Introduction.html#//apple_ref/doc/uid/TP40008048-CH1-SW1">Objective-C Runtime Programming Guide</a></li>
+<li><a href="http://book.douban.com/subject/25829244/">Effective Objective C 2.0</a></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Effective Objective-C 读书笔记(一)]]></title>
+    <link href="http://wxgbridgeq.github.io/blog/2015/05/16/effective-oc-note-first/"/>
+    <updated>2015-05-16T16:30:39+08:00</updated>
+    <id>http://wxgbridgeq.github.io/blog/2015/05/16/effective-oc-note-first</id>
+    <content type="html"><![CDATA[<h2>OC的消息机制</h2>
+
+<p>OC与其他面向对象语言如C++、Java的不同之处在于使用消息机制代替方法调用。</p>
+
+<pre><code class="objc">// OC
+NSObject *obj = [NSObject new];
+[obj doSomething];
+
+// Java
+Object obj = new Object();
+obj.doSomething();
+</code></pre>
+
+<p>两者关键区别在于：在使用方法调用的语言中，程序运行时所应执行的代码多数情况下在编译时期就已经被确定，只有在多态的情况下才会在运行时查看该调用哪段代码。而在OC中，无论是否多态，程序运行时所应执行的代码都是由运行时环境来决定。所以在OC中，编译器并不关心接收消息的对象是何种类型，所有消息也都在运行时才被处理，也就是OC的动态绑定机制。</p>
+
+<!--more-->
+
+
+<h2>@class的使用</h2>
+
+<p>如果在一个类<code>SomeClass</code>的声明中引用了另一个类<code>OtherClass</code>，最简单的做法可能是使用<code>#import "OtherClass.h"</code>导入这个类，然而这并不是最好的做法。<br/>
+假设<code>SomeClass</code>又被许多其他类引用，那么每次引用<code>SomeClass</code>的时候都会同时引用<code>OtherClass</code>，这会降低一定的编译性能。更好的做法是在声明文件中将<code>#import "OtherClass.h"</code>改为<code>@class OtherClass;</code>，在具体使用<code>OtherClass</code>的文件如<code>SomeClass.m</code>中，才使用<code>#import "OtherClass.h"</code>导入这个类。</p>
+
+<pre><code>// SomeClass.h
+#import &lt;Foundation/Foundation.h&gt;
+
+// #import "OtherClass.h"
+@class OtherClass;
+
+@interface SomeClass : NSObject
+
+@property (nonatomic) OtherClass * other;
+
+@end
+</code></pre>
+
+<p>这种做法叫做<code>向前声明</code>，向前声明还可以解决两个类相互循环引用的问题。</p>
+
+<p>向前声明并不是所有情况都适用，当一个类需要继承自某个父类时，就必须在声明中导入父类的头文件。同样，当一个类需要遵守某个协议时，也必须导入协议的头文件。</p>
+
+<h2>字面量语法的使用</h2>
+
+<p>Foundation框架中的这几个类<code>NSString、NSNumber、NSArray、NSDictionary</code>都有相应的字面量语法，具体使用如下：</p>
+
+<pre><code>NSString *str = @"some string";
+NSNumber *num = @10;
+NSArray *arr = @[@"some string", @10];
+NSString *someString = arr[0];
+NSDictionary *dic = @{@"key1" : @"value1", @"key2" : @"value2"};
+NSString *value = dic["key1"];
+</code></pre>
+
+<p>使用字面量语法不仅可以使代码简洁、可读性强，在数组和字典的创建过程中，还有一个小小的优点。</p>
+
+<p>使用字面量语法创建数组其实本质也是调用<code>NSArray</code>类的<code>arrayWithObjects:</code>方法，前面arr数组的创建等价于如下代码：</p>
+
+<pre><code>NSArray *arr = [NSArray arrayWithObjects:@"some string", @10, nil];
+</code></pre>
+
+<p>使用<code>arrayWithObjects:</code>方法创建数组时，如果数组元素中有<code>nil</code>，会提前结束方法，不会抛出异常。这样会导致数组元素与逻辑不符，却很难发现代码错误。<br/>
+而使用字面量语法创建数组时，如果数组元素中有<code>nil</code>，则会抛出异常，这样有利于程序员提前发现代码错误。</p>
+
+<h2>用类型常量代替#define预处理指令</h2>
+
+<p>写代码时经常遇到需要使用常量的地方，一般都不推荐直接使用数字，因为它既显得突兀又不利于代码的维护，通常我们有两种办法来定义常量，一种是使用<code>#define</code>预处理命令，另一种是使用<code>static const</code>关键字来定义一个常量。</p>
+
+<pre><code>#define ANIMATION_DURATION 0.3
+static const NSTimeInterval kAnimationDuration = 0.3
+</code></pre>
+
+<p>使用<code>#define</code>预处理命令仅仅是将代码中的<code>ANIMATION_DURATION</code>字符串替换为0.3，这样定义的常量并不具备类型信息，因此无法使用编译器带给我们的诸多好处，所以更推荐使用第二种方式定义常量。</p>
+
+<p>使用<code>static const</code>关键字来定义常量，用在类的实现文件中，则此常量只作用在本类中，其他类无法使用。如果多个类都需使用到某一常量，则需将常量定义成公开的，具体方式是在类的声明文件中使用<code>extern const</code>关键字声明常量，在类的实现文件中使用<code>const</code>关键字定义常量，这样任何类只要导入了声明常量的头文件就可以直接使用定义好的常量了。</p>
+
+<p>需要注意的是，OC中没有命名空间的概念，是不允许有多个同名的全局变量存在的，因此定义公共的常量最好遵守一定的命名规则，通常是使用类名作为前缀，如<code>WXGViewAnimationDuration</code>。</p>
+
+<h2>善用枚举类型来增强代码的可读性</h2>
+
+<p>OC的系统框架中，大规模使用了枚举类型，苹果官方也推荐开发者更多去使用枚举类型来表达一系列常量。这样做的好处是使代码更具可读性，通过枚举中每个成员的名字可以很清楚地明白它所代表的意义。</p>
+
+<p>可以使用<code>typedef</code>关键字定义枚举类型，来省去每次使用枚举类型时都需要加上<code>enum</code>关键字的麻烦。</p>
+
+<pre><code>enum ConnectionState {
+    ConnectionStateDisconnected,
+    ConnectionStateConnecting,
+    ConnectionStateConnected
+};
+
+typedef enum ConnectionState ConnectingState;
+</code></pre>
+
+<p>对于多选枚举情况，可以使用按位操作来定义枚举值，这样在使用时就可以通过<code>|或&amp;</code>来控制枚举的选项。</p>
+
+<p>苹果官方还定义了两个宏，用来快速定义使用自定义变量类型的枚举，我们也应该更多的使用这两个宏来定义自己的枚举。具体使用参考如下代码：</p>
+
+<pre><code>typedef NS_ENUM(NSInteger, UIViewAnimationTransition) {
+    UIViewAnimationTransitionNone,
+    UIViewAnimationTransitionFlipFromLeft,
+    UIViewAnimationTransitionFlipFromRight,
+    UIViewAnimationTransitionCurlUp,
+    UIViewAnimationTransitionCurlDown,
+};
+
+typedef NS_OPTIONS(NSUInteger, UIViewAutoresizing) {
+    UIViewAutoresizingNone                 = 0,
+    UIViewAutoresizingFlexibleLeftMargin   = 1 &lt;&lt; 0,
+    UIViewAutoresizingFlexibleWidth        = 1 &lt;&lt; 1,
+    UIViewAutoresizingFlexibleRightMargin  = 1 &lt;&lt; 2,
+    UIViewAutoresizingFlexibleTopMargin    = 1 &lt;&lt; 3,
+    UIViewAutoresizingFlexibleHeight       = 1 &lt;&lt; 4,
+    UIViewAutoresizingFlexibleBottomMargin = 1 &lt;&lt; 5
+};
+</code></pre>
+
+<p>枚举类型还经常用在<code>switch</code>分支选择上，这种情况下最好不要在<code>case</code>语句中加上<code>default</code>选项，意义在于当枚举中有新成员加入后，因为没有遍历所有可能情况，编译器就会发出警告，从而确保<code>switch</code>语句能够正确处理所有情况。</p>
+]]></content>
+  </entry>
+  
+</feed>

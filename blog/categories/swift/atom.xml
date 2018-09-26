@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[文章分类：swift | BridgeQ的个人学习博客]]></title>
+  <link href="http://wxgbridgeq.github.io/blog/categories/swift/atom.xml" rel="self"/>
+  <link href="http://wxgbridgeq.github.io/"/>
+  <updated>2018-09-26T22:53:03+08:00</updated>
+  <id>http://wxgbridgeq.github.io/</id>
+  <author>
+    <name><![CDATA[BridgeQ]]></name>
+    <email><![CDATA[wxg.bridgeq@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Swift面向协议编程初探 | WWDC 2015学习笔记]]></title>
+    <link href="http://wxgbridgeq.github.io/blog/2015/07/21/protocol-oriented-programming-first/"/>
+    <updated>2015-07-21T14:05:26+08:00</updated>
+    <id>http://wxgbridgeq.github.io/blog/2015/07/21/protocol-oriented-programming-first</id>
+    <content type="html"><![CDATA[<p>最近有时间，挑了几个今年WWDC中比较感兴趣的Session视频来学习，今天就抽时间整理一下关于<code>Swift 2.0</code>中一个比较新的概念<code>面向协议编程</code>。</p>
+
+<p>相关的Session视频链接如下：</p>
+
+<ul>
+<li><a href="https://developer.apple.com/videos/wwdc/2015/?id=408">Session 408: Protocol-Oriented Programming in Swift</a></li>
+<li><a href="https://developer.apple.com/videos/wwdc/2015/?id=414">Session 414: Building Better Apps with Value Types in Swift</a></li>
+</ul>
+
+
+<h2>写在前面</h2>
+
+<h4>面向协议编程是什么？</h4>
+
+<p>你可能听过类似的概念：<strong>面向对象编程</strong>、<strong>函数式编程</strong>、<strong>泛型编程</strong>，再加上苹果今年新提出的<strong>面向协议编程</strong>，这些统统可以理解为是一种编程范式。所谓编程范式，是隐藏在编程语言背后的思想，代表着语言的作者想要用怎样的<strong>方式</strong>去解决怎样的<strong>问题</strong>。不同的编程范式反应在现实世界中，就是不同的编程语言适用于不同的领域和环境，比如在面向对象编程思想中，开发者用对象来描述万事万物并试图用对象来解决所有可能的问题。编程范式都有其各自的偏好和使用限制，所以越来越多的现代编程语言开始支持<strong>多范式</strong>，使语言自身更强壮也更具适用性。</p>
+
+<!--more-->
+
+
+<p>更多编程范式和相关概念请参看：<a href="https://zh.wikipedia.org/wiki/%E7%BC%96%E7%A8%8B%E8%8C%83%E5%9E%8B">维基百科：编程范式</a></p>
+
+<p>对Swift语言所采用的编程范式感兴趣的朋友可以参看这篇文章：<a href="http://lincode.github.io/Swift-Paradigm/">多范式编程语言－以 Swift 为例</a></p>
+
+<h4>面向协议编程长什么样子？</h4>
+
+<p>在详细解释面向协议编程之前，我们先简单地概括一下面向协议编程长什么样子？它与我们熟悉的面向对象编程有什么不一样？</p>
+
+<p>简单来说，面向协议编程是在面向对象编程基础上演变而来，将程序设计过程中遇到的数据类型的抽取（抽象）由使用<strong>基类</strong>进行抽取改为使用<strong>协议</strong>（Java语言中的接口）进行抽取。更简单点举个栗子来说，一个猫类、一个狗类，我们很容易想到抽取一个描述动物的基类，也会有人想到抽取一个动物通用的协议，那后者就可以被叫做面向协议编程了。什么？就是这样而已？苹果官方那么正式的称Swift是一门支持面向协议编程的语言，难道就是这么简单的内容？当然不会，有过面向对象编程经验的人都会清楚，协议的使用限制很多，并不能适用于大多数情况下数据类型的抽象。而在Swift语言中，协议被赋予了更多的功能和更广阔的使用空间，在Swift 2.0中，更为协议增加了扩展功能，使其能够胜任绝大多数情况下数据类型的抽象，所以苹果开始声称Swift是一门支持面向协议编程的语言。</p>
+
+<p>面向协议编程对比面向对象编程的好处在哪里？它会对我们程序的设计造成哪些影响？我们会在下文中继续分析。</p>
+
+<h2>写在中间</h2>
+
+<h4>离开面向对象我们失去了什么？</h4>
+
+<p>首先，让我们来看看面向对象编程为我们带来的好处。绝大多数熟悉一种或几种面向对象编程语言的开发者都能随口说出几条面向对象编程的优点，比如数据的封装、数据访问的控制、数据类型的抽象、代码的可读性和可扩展性等。这意味着离开了面向对象编程我们也就失去了如此多的好处。</p>
+
+<blockquote><p>哦，天呐！不要这样好嘛？</p></blockquote>
+
+<p>回头仔细想想，这些好处只有面向对象编程才有嘛？苹果给了我们另一种答案：<em>It&rsquo;s Type, not Classes</em>，是抽象的<strong>类型</strong>带给我们如此多的好处，并不是面向对象中的<strong>类</strong>，类只是抽象类型的一种方式。比如在Swift语言中，使用结构体和枚举也同样能够实现对类型的抽象、数据的封装和访问控制等，这些好处又都回来了。</p>
+
+<p>那么有没有什么是类能带给我们，而结构体和枚举办不到的呢？当然有，不然我们真的可以离开面向对象了。面向对象编程还有两个非常重要的特性我们还没有提到：继承和多态。继承和多态为我们带来了丰富多彩的世界，想想我们Cocoa Touch中的框架，这才是我们所熟悉的面向对象编程，它使我们能够轻易地解决所面对的问题，并使我们的代码具有高度的可定制和可重用性。</p>
+
+<blockquote><p>我们的世界终于好像正常了。</p></blockquote>
+
+<h4>拥有面向对象我们又得到了什么？</h4>
+
+<p>那么，面向对象编程在带给我们这么多好处的同时，是否还附带了其他一些特性呢？比如说：要花费的代价。</p>
+
+<p>我们先来看出现的第一个问题，多数面向对象语言中的对象都是使用引用类型，在对象传递过程中只是将引用复制一份并指向原有的对象，这样就会出现问题。比如下面代码所示的例子：</p>
+
+<pre><code class="objc">class Book {
+    var name: String
+    var pages: Int
+    init(name: String, pages: Int) {
+        self.name = name
+        self.pages = pages
+    }
+}
+class Person {
+    var name: String
+    var book: Book
+    init(name: String, book: Book) {
+        self.name = name
+        self.book = book
+    }
+}
+let 围城 = Book(name: "围城", pages: 888)
+let 小明 = Person(name: "小明", book: 围城) // 小明有一本全新的《围城》
+let 小刚 = Person(name: "小刚", book: 围城) // 小刚也有一本全新的《围城》
+小明.book.pages = 88 // 小明淘气把书弄坏了，只剩88页了
+print(小刚.book.pages) // 输出结果：88  WTF! Where is my new book?
+</code></pre>
+
+<p>故事的结尾是：小刚因为弄坏书被妈妈打了~  不对啊，小明哪去了？我也不知道~</p>
+
+<p>相信大多数面向对象编程语言的开发者都明白这是引用传递的原因，通常我们的解决办法也很简单，每次赋值的时候都先拷贝一份再进行赋值。当我们尝试在上述代码中加入copy方法时，却发现在Swift中对象默认并没有copy方法，这是因为Swift更推荐使用值类型变量而不是引用类型的变量。如果真的需要调用copy方法，你可以将Book类继承自NSObject，但这样的做法真的一点都不优雅，也不够<code>Swiftpyer</code>。实际上我们的问题也可以采用如下的解决办法：</p>
+
+<pre><code>class Book {
+    var name: String
+    var pages: Int
+    init(name: String, pages: Int) {
+        self.name = name
+        self.pages = pages
+    }
+}
+class Person {
+    var name: String
+    var book: Book
+    init(name: String, book: Book) {
+        self.name = name
+        self.book = Book(name: book.name, pages: book.pages)
+    }
+}
+let 围城 = Book(name: "围城", pages: 888)
+let 小明 = Person(name: "小明", book: 围城) // 小明有一本全新的《围城》
+let 小刚 = Person(name: "小刚", book: 围城) // 小刚也有一本全新的《围城》
+小明.book.pages = 88 // 小明淘气把书弄坏了，只剩88页了
+print(小刚.book.pages) // 输出结果：888
+</code></pre>
+
+<p>我们在Person的构造方法中，为book属性新创建了一本书，从而保证小明和小刚各自拥有自己的书。这个解决办法可能并不适用于所有引用类型传递的情况，那么在Swift中，最好的解决办法是什么呢？其实答案很简单，使用值类型而非引用类型。Swift中许多常见的数据类型、字符串、集合类型，以及结构体和枚举都是值类型而非引用类型，值类型的变量在赋值时会自动进行一次低消耗的值拷贝，对比对象的copy要更加高效而且不存在线程安全问题。所以我们上面这个故事的最好结局是：将Book修改为结构体类型。</p>
+
+<pre><code>struct Book {
+    var name: String
+    var pages: Int
+    init(name: String, pages: Int) {
+        self.name = name
+        self.pages = pages
+    }
+}
+struct Person {
+    var name: String
+    var book: Book
+    init(name: String, book: Book) {
+        self.name = name
+        self.book = book
+    }
+}
+let 围城 = Book(name: "围城", pages: 888)
+var 小明 = Person(name: "小明", book: 围城) // 小明有一本全新的《围城》
+let 小刚 = Person(name: "小刚", book: 围城) // 小刚也有一本全新的《围城》
+小明.book.pages = 88 // 小明淘气把书弄坏了，只剩88页了
+print(小刚.book.pages) // 输出结果：888
+</code></pre>
+
+<blockquote><p>小刚终于得救了~</p></blockquote>
+
+<p>想了解更多值类型的使用及其相关信息可以参看：<a href="https://developer.apple.com/videos/wwdc/2015/?id=414">Session 414: Building Better Apps with Value Types in Swift</a></p>
+
+<p>我们刚刚使用一个例子解释了面向对象编程中使用引用类型可能出现的问题，接下来我们谈论另一个非常重要的话题：<strong>继承的代价</strong>。这并不是一个新颖的话题，自面向对象编程诞生之日起就饱受争议，我们经常要忍受着愈加繁杂和庞大的继承体系来获得代码的可重用性，而且随着继承层次的增加，代码的复杂性会加速增长，随之而来的bug也会越来越难以发现。这时我们可能需要依靠设计模式来找回我们的思路，然而大多数设计模式只能帮助你理顺你的代码结构，却在同时更加加深了你的代码的复杂度。</p>
+
+<p>继承带给我们的另一个好处就是多态，多态极大地增强了我们代码的可扩展性。然而就像“<em>能量守恒定律</em>”一样，多态也带来了一定的负面影响，那就是类型信息的缺失。形象一点讲，就是我们常常会写出这样的代码：<code>subClassObject as! SubClass</code>，向下类型转换。</p>
+
+<h4>那么问题来了：什么是更好的抽象类型？</h4>
+
+<p>苹果官方对这个问题的回答如下：</p>
+
+<ul>
+<li>更多地支持值类型，同时也支持引用类型</li>
+<li>更多地支持静态类型关联（编译期），同时也支持动态派发（运行时）</li>
+<li>结构不庞大不复杂</li>
+<li>模型可扩展</li>
+<li>不给模型强制添加数据</li>
+<li>不给模型增加初始化任务的负担</li>
+<li>清楚哪些方法该实现哪些方法不需实现</li>
+</ul>
+
+
+<p>其实答案就是Swift中的面向协议编程，苹果只是在自卖自夸而已。</p>
+
+<h2>面向协议编程</h2>
+
+<p>接下来我们就正式进入Swift的面向协议编程的世界。首先我们来对比如下两段示例代码，代码的功能是定义一个更具扩展性的二分查找法。</p>
+
+<pre><code>class Ordered {
+    func precedes(other: Ordered) -&gt; Bool { fatalError("implement me!") }
+}
+class Number: Ordered {
+    var value: Double = 0
+    override func precedes(other: Ordered) -&gt; Bool {
+        return self.value &lt; (other as! Number).value
+    }
+}
+func binarySearch(sortedKeys: [Ordered], forKey k: Ordered) -&gt; Int {
+    var lo = 0
+    var hi = sortedKeys.count
+    while hi &gt; lo {
+        let mid = lo + (hi - lo) / 2
+        if sortedKeys[mid].precedes(k) { lo = mid + 1 }
+        else { hi = mid }
+    }
+    return lo
+}
+</code></pre>
+
+<pre><code>protocol Ordered {
+    func precedes(other: Self) -&gt; Bool
+}
+struct Number: Ordered {
+    var value: Double = 0
+    func precedes(other: Number) -&gt; Bool {
+        return self.value &lt; other.value
+    }
+}
+func binarySearch&lt;T: Ordered&gt;(sortedKeys: [T], forKey k: T) -&gt; Int {
+    var lo = 0
+    var hi = sortedKeys.count
+    while hi &gt; lo {
+        let mid = lo + (hi - lo) / 2
+        if sortedKeys[mid].precedes(k) { lo = mid + 1 }
+        else { hi = mid }
+    }
+    return lo
+}
+</code></pre>
+
+<p>应该不难看出两者之间的区别以及孰优孰劣，简单解释一下前者的缺点，反过来也就是后者的优点了。</p>
+
+<ul>
+<li>OC语言中没有抽象类这个概念，所有抽象类都是靠文档注释标明，这很蛋疼~</li>
+<li>其他类型若想使用该二分查找法，必须继承自Ordered抽象类，在单继承体系中，该类型将无法再继承其他类型</li>
+<li>方法参数接收的数组中，类型要求不严格，可以放入多种不同类型的Ordered子类对象</li>
+<li>基于前一点原因，为保证严谨性，必须在方法实现内部增加类型判断，这更加蛋疼~~</li>
+</ul>
+
+
+<p>基于上面的例子，我们可以稍微感受到面向协议编程在扩展性上的优势了，这里再提几个注意点。</p>
+
+<ul>
+<li>Swift 2.0新特性之一，将<strong>Self</strong>用于约束泛型，功能类似于OC中的instancetype，示例：<code>extension Ordered where Self: Comparable</code></li>
+<li>Swift 2.0另一个重要的新特性，协议可扩展，意味着你不仅可以扩展一个类型使其遵守Ordered协议，还可以直接扩展某个协议，详见如下两段代码示例。</li>
+</ul>
+
+
+<pre><code>// 扩展类型
+extension Int: Ordered {
+    func precedes(other: Int) -&gt; Bool {
+        return self &lt; other
+    }
+}
+extension String: Ordered {
+    func precedes(other: String) -&gt; Bool {
+        return self &lt; other
+    }
+}
+let intIndex = binarySearch([2, 3, 5, 7], forKey: 5) // 输出结果2
+let stringIndex = binarySearch(["2", "3", "5", "7"], forKey: "5") // 输出结果2
+</code></pre>
+
+<pre><code>// 扩展协议：方式一
+//extension Comparable {
+//    func precedes(other: Self) -&gt; Bool {
+//        return self &lt; other
+//    }
+//}
+// 扩展协议：方式二（Swift 2.0的推荐方式）
+extension Ordered where Self: Comparable {
+    func precedes(other: Self) -&gt; Bool {
+        return self &lt; other
+    }
+}
+extension Int: Ordered {}
+extension String: Ordered {}
+let intIndex = binarySearch([2, 3, 5, 7], forKey: 5) // 输出结果2
+let stringIndex = binarySearch(["2", "3", "5", "7"], forKey: "5") // 输出结果2
+</code></pre>
+
+<p>从上面的代码我们可以看出，协议可扩展所带来的功能之一就是能够为协议中的方法提供默认实现。</p>
+
+<p>更多协议可扩展所带来的功能可以参看RayWenderlich上的这篇文章：</p>
+
+<ul>
+<li><a href="http://www.raywenderlich.com/109156/introducing-protocol-oriented-programming-in-swift-2">英文版：Introducing Protocol-Oriented Programming in Swift 2</a></li>
+<li><a href="http://www.swiftyper.com/Swift/introducing-protocol-oriented-programming-in-swift-2.html">中文版：Swift 2.0之初识面向协议编程</a></li>
+</ul>
+
+
+<p>关于面向协议编程的完整示例程序可以参看苹果官方的示例代码：</p>
+
+<ul>
+<li><a href="https://developer.apple.com/sample-code/wwdc/2015/downloads/Crustacean.zip">完整示例程序：Crustacean</a></li>
+</ul>
+
+
+<h2>写在最后</h2>
+
+<h4>个人总结</h4>
+
+<p>面向对象编程和面向协议编程最明显的区别在于程序设计过程中对数据类型的抽取（抽象）上，面向对象编程使用类和继承的手段，数据类型是引用类型；而面向协议编程使用的是遵守协议的手段，数据类型是值类型（Swift中的结构体或枚举）。</p>
+
+<p>面向协议编程是在面向对象编程基础上发展而来的，而并不是完全背离面向对象编程的思想。</p>
+
+<p>面向对象编程是伟大的编程思想，也是当今主流的编程思想，它的问题在于被过多的使用在其实并不需要使用它的情况下。</p>
+
+<p>Swift是一门支持多编程范式的语言，既支持面向对象编程，也支持面向协议编程，同时还支持函数式编程。在项目开发过程中，控制器和视图部分由于使用系统框架，应更多采用面向对象编程的方式；而模型或业务逻辑等自定义类型部分，则应优先考虑面向协议编程。</p>
+
+<p>PS. 这篇文章的写作过程持续了很长时间，中间几乎夭折，最后还是尽量将它写完整（其实后半部分写的很水）。面向协议编程是一个比较新的概念，目前只是隐约可以看出它的一些长处（在一些使用面向对象编程并不太适合的地方），不过苹果已经在自身框架中开始使用了，并确实改善了系统一些类型和方法的使用。</p>
+
+<h4>参考资料</h4>
+
+<ul>
+<li><a href="http://www.infoq.com/news/2015/06/protocol-oriented-swift">Protocol-Oriented Programming in Swift</a></li>
+<li><a href="http://owensd.io/2015/06/17/protocol-oriented-programming.html">Protocol Oriented Programming</a></li>
+<li><a href="http://blog.metaobject.com/2015/06/protocol-oriented-programming-is-object.html">Protocol-Oriented Programming is Object-Oriented Programming</a></li>
+<li><a href="https://medium.com/ios-os-x-development/heterogeneous-vs-homogeneous-generics-630971626b7d">Heterogeneous vs Homogeneous Containers in Swift</a></li>
+<li><a href="http://krakendev.io/blog/subclassing-can-suck-and-heres-why">If You&rsquo;re Subclassing, You&rsquo;re Doing It Wrong</a></li>
+<li><a href="http://lincode.github.io/Swift-Paradigm/">推荐必读文章：多范式编程语言－以 Swift 为例</a></li>
+</ul>
+
+
+<p>最后，让我们记住这张图：（<em>Quiz: Who is Crusty at Apple?</em>）</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/protocol-01.png" alt="" /></p>
+]]></content>
+  </entry>
+  
+</feed>

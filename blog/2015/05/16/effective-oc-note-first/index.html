@@ -1,0 +1,413 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Effective Objective-C 读书笔记(一) - BridgeQ的个人学习博客</title>
+  <meta name="author" content="BridgeQ">
+
+  
+  <meta name="description" content="OC的消息机制 OC与其他面向对象语言如C++、Java的不同之处在于使用消息机制代替方法调用。 1
+2
+3
+4
+5
+6
+7
+// OC
+NSObject *obj = [NSObject new];
+[obj doSomething]; // Java
+Object obj = new &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://wxgbridgeq.github.io/blog/2015/05/16/effective-oc-note-first/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="BridgeQ的个人学习博客" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="/javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">BridgeQ的个人学习博客</a></h1>
+  
+    <h2>学习、记录、分享</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="sitesearch" value="wxgbridgeq.github.io">
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">首页</a></li>
+  <li><a href="/blog/archives">所有文章</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Effective Objective-C 读书笔记(一)</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+2015年5月16日
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><h2>OC的消息机制</h2>
+
+<p>OC与其他面向对象语言如C++、Java的不同之处在于使用消息机制代替方法调用。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="c1">// OC</span>
+</span><span class='line'><span class="bp">NSObject</span> <span class="o">*</span><span class="n">obj</span> <span class="o">=</span> <span class="p">[</span><span class="bp">NSObject</span> <span class="n">new</span><span class="p">];</span>
+</span><span class='line'><span class="p">[</span><span class="n">obj</span> <span class="n">doSomething</span><span class="p">];</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// Java</span>
+</span><span class='line'><span class="n">Object</span> <span class="n">obj</span> <span class="o">=</span> <span class="n">new</span> <span class="n">Object</span><span class="p">();</span>
+</span><span class='line'><span class="n">obj</span><span class="p">.</span><span class="n">doSomething</span><span class="p">();</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>两者关键区别在于：在使用方法调用的语言中，程序运行时所应执行的代码多数情况下在编译时期就已经被确定，只有在多态的情况下才会在运行时查看该调用哪段代码。而在OC中，无论是否多态，程序运行时所应执行的代码都是由运行时环境来决定。所以在OC中，编译器并不关心接收消息的对象是何种类型，所有消息也都在运行时才被处理，也就是OC的动态绑定机制。</p>
+
+<!--more-->
+
+
+<h2>@class的使用</h2>
+
+<p>如果在一个类<code>SomeClass</code>的声明中引用了另一个类<code>OtherClass</code>，最简单的做法可能是使用<code>#import "OtherClass.h"</code>导入这个类，然而这并不是最好的做法。<br/>
+假设<code>SomeClass</code>又被许多其他类引用，那么每次引用<code>SomeClass</code>的时候都会同时引用<code>OtherClass</code>，这会降低一定的编译性能。更好的做法是在声明文件中将<code>#import "OtherClass.h"</code>改为<code>@class OtherClass;</code>，在具体使用<code>OtherClass</code>的文件如<code>SomeClass.m</code>中，才使用<code>#import "OtherClass.h"</code>导入这个类。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="c1">// SomeClass.h</span>
+</span><span class='line'><span class="cp">#import &lt;Foundation/Foundation.h&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// #import &quot;OtherClass.h&quot;</span>
+</span><span class='line'><span class="k">@class</span> <span class="nc">OtherClass</span>;
+</span><span class='line'>
+</span><span class='line'><span class="k">@interface</span> <span class="nc">SomeClass</span> : <span class="bp">NSObject</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">)</span> <span class="n">OtherClass</span> <span class="o">*</span> <span class="n">other</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">@end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这种做法叫做<code>向前声明</code>，向前声明还可以解决两个类相互循环引用的问题。</p>
+
+<p>向前声明并不是所有情况都适用，当一个类需要继承自某个父类时，就必须在声明中导入父类的头文件。同样，当一个类需要遵守某个协议时，也必须导入协议的头文件。</p>
+
+<h2>字面量语法的使用</h2>
+
+<p>Foundation框架中的这几个类<code>NSString、NSNumber、NSArray、NSDictionary</code>都有相应的字面量语法，具体使用如下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="bp">NSString</span> <span class="o">*</span><span class="n">str</span> <span class="o">=</span> <span class="s">@&quot;some string&quot;</span><span class="p">;</span>
+</span><span class='line'><span class="bp">NSNumber</span> <span class="o">*</span><span class="n">num</span> <span class="o">=</span> <span class="mi">@10</span><span class="p">;</span>
+</span><span class='line'><span class="bp">NSArray</span> <span class="o">*</span><span class="n">arr</span> <span class="o">=</span> <span class="l">@[</span><span class="s">@&quot;some string&quot;</span><span class="p">,</span> <span class="mi">@10</span><span class="l">]</span><span class="p">;</span>
+</span><span class='line'><span class="bp">NSString</span> <span class="o">*</span><span class="n">someString</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+</span><span class='line'><span class="bp">NSDictionary</span> <span class="o">*</span><span class="n">dic</span> <span class="o">=</span> <span class="l">@{</span><span class="s">@&quot;key1&quot;</span> <span class="o">:</span> <span class="s">@&quot;value1&quot;</span><span class="p">,</span> <span class="s">@&quot;key2&quot;</span> <span class="o">:</span> <span class="s">@&quot;value2&quot;</span><span class="l">}</span><span class="p">;</span>
+</span><span class='line'><span class="bp">NSString</span> <span class="o">*</span><span class="n">value</span> <span class="o">=</span> <span class="n">dic</span><span class="p">[</span><span class="s">&quot;key1&quot;</span><span class="p">];</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>使用字面量语法不仅可以使代码简洁、可读性强，在数组和字典的创建过程中，还有一个小小的优点。</p>
+
+<p>使用字面量语法创建数组其实本质也是调用<code>NSArray</code>类的<code>arrayWithObjects:</code>方法，前面arr数组的创建等价于如下代码：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="bp">NSArray</span> <span class="o">*</span><span class="n">arr</span> <span class="o">=</span> <span class="p">[</span><span class="bp">NSArray</span> <span class="nl">arrayWithObjects</span><span class="p">:</span><span class="s">@&quot;some string&quot;</span><span class="p">,</span> <span class="mi">@10</span><span class="p">,</span> <span class="nb">nil</span><span class="p">];</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>使用<code>arrayWithObjects:</code>方法创建数组时，如果数组元素中有<code>nil</code>，会提前结束方法，不会抛出异常。这样会导致数组元素与逻辑不符，却很难发现代码错误。<br/>
+而使用字面量语法创建数组时，如果数组元素中有<code>nil</code>，则会抛出异常，这样有利于程序员提前发现代码错误。</p>
+
+<h2>用类型常量代替#define预处理指令</h2>
+
+<p>写代码时经常遇到需要使用常量的地方，一般都不推荐直接使用数字，因为它既显得突兀又不利于代码的维护，通常我们有两种办法来定义常量，一种是使用<code>#define</code>预处理命令，另一种是使用<code>static const</code>关键字来定义一个常量。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="cp">#define ANIMATION_DURATION 0.3</span>
+</span><span class='line'><span class="k">static</span> <span class="k">const</span> <span class="n">NSTimeInterval</span> <span class="n">kAnimationDuration</span> <span class="o">=</span> <span class="mf">0.3</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>使用<code>#define</code>预处理命令仅仅是将代码中的<code>ANIMATION_DURATION</code>字符串替换为0.3，这样定义的常量并不具备类型信息，因此无法使用编译器带给我们的诸多好处，所以更推荐使用第二种方式定义常量。</p>
+
+<p>使用<code>static const</code>关键字来定义常量，用在类的实现文件中，则此常量只作用在本类中，其他类无法使用。如果多个类都需使用到某一常量，则需将常量定义成公开的，具体方式是在类的声明文件中使用<code>extern const</code>关键字声明常量，在类的实现文件中使用<code>const</code>关键字定义常量，这样任何类只要导入了声明常量的头文件就可以直接使用定义好的常量了。</p>
+
+<p>需要注意的是，OC中没有命名空间的概念，是不允许有多个同名的全局变量存在的，因此定义公共的常量最好遵守一定的命名规则，通常是使用类名作为前缀，如<code>WXGViewAnimationDuration</code>。</p>
+
+<h2>善用枚举类型来增强代码的可读性</h2>
+
+<p>OC的系统框架中，大规模使用了枚举类型，苹果官方也推荐开发者更多去使用枚举类型来表达一系列常量。这样做的好处是使代码更具可读性，通过枚举中每个成员的名字可以很清楚地明白它所代表的意义。</p>
+
+<p>可以使用<code>typedef</code>关键字定义枚举类型，来省去每次使用枚举类型时都需要加上<code>enum</code>关键字的麻烦。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="k">enum</span> <span class="n">ConnectionState</span> <span class="p">{</span>
+</span><span class='line'>  <span class="n">ConnectionStateDisconnected</span><span class="p">,</span>
+</span><span class='line'>  <span class="n">ConnectionStateConnecting</span><span class="p">,</span>
+</span><span class='line'>  <span class="n">ConnectionStateConnected</span>
+</span><span class='line'><span class="p">};</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">typedef</span> <span class="k">enum</span> <span class="n">ConnectionState</span> <span class="n">ConnectingState</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>对于多选枚举情况，可以使用按位操作来定义枚举值，这样在使用时就可以通过<code>|或&amp;</code>来控制枚举的选项。</p>
+
+<p>苹果官方还定义了两个宏，用来快速定义使用自定义变量类型的枚举，我们也应该更多的使用这两个宏来定义自己的枚举。具体使用参考如下代码：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="k">typedef</span> <span class="nf">NS_ENUM</span><span class="p">(</span><span class="bp">NSInteger</span><span class="p">,</span> <span class="n">UIViewAnimationTransition</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">UIViewAnimationTransitionNone</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">UIViewAnimationTransitionFlipFromLeft</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">UIViewAnimationTransitionFlipFromRight</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">UIViewAnimationTransitionCurlUp</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">UIViewAnimationTransitionCurlDown</span><span class="p">,</span>
+</span><span class='line'><span class="p">};</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">typedef</span> <span class="nf">NS_OPTIONS</span><span class="p">(</span><span class="bp">NSUInteger</span><span class="p">,</span> <span class="n">UIViewAutoresizing</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">UIViewAutoresizingNone</span>                 <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">UIViewAutoresizingFlexibleLeftMargin</span>   <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">0</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">UIViewAutoresizingFlexibleWidth</span>        <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">1</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">UIViewAutoresizingFlexibleRightMargin</span>  <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">2</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">UIViewAutoresizingFlexibleTopMargin</span>    <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">3</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">UIViewAutoresizingFlexibleHeight</span>       <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">4</span><span class="p">,</span>
+</span><span class='line'>    <span class="n">UIViewAutoresizingFlexibleBottomMargin</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">5</span>
+</span><span class='line'><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>枚举类型还经常用在<code>switch</code>分支选择上，这种情况下最好不要在<code>case</code>语句中加上<code>default</code>选项，意义在于当枚举中有新成员加入后，因为没有遍历所有可能情况，编译器就会发出警告，从而确保<code>switch</code>语句能够正确处理所有情况。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard"><span class="fn">BridgeQ</span></span>
+
+      
+
+
+
+
+2015年5月16日
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/objective-c/'>objective-c</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/05/15/octopress-personal-blog/" title="Previous Post: 使用Octopress搭建个人博客">&laquo; 使用Octopress搭建个人博客</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2015/06/19/uiscrollview-tutorial/" title="Next Post: UIScrollView新手教程 | AppCoda翻译系列">UIScrollView新手教程 | AppCoda翻译系列 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>最新文章</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/08/10/custom-transition-animation/">自定义控制器转场动画及下拉菜单的小Demo | AppCoda翻译系列</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/09/simple-qzone/">简单模仿iPad版QQ空间界面的小Demo</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/23/oc-runtime-practice/">一次关于OC运行时和Method Swizzing的小实践</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/21/protocol-oriented-programming-first/">Swift面向协议编程初探 | WWDC 2015学习笔记</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/09/effective-oc-note-second/">Effective Objective-C 读书笔记(二) | 理解OC运行时</a>
+      </li>
+    
+  </ul>
+</section>
+<section>
+  <h1>文章分类</h1>
+  <ul id="categories">
+    
+      <li class="category">
+        <a class='category' href='/blog/categories/octopress/'>octopress</a> (1)
+      </li>
+    
+      <li class="category">
+        <a class='category' href='/blog/categories/objective-c/'>objective-c</a> (2)
+      </li>
+    
+      <li class="category">
+        <a class='category' href='/blog/categories/ji-zhu-wen-zhang-fan-yi/'>技术文章翻译</a> (3)
+      </li>
+    
+      <li class="category">
+        <a class='category' href='/blog/categories/ios/'>ios</a> (3)
+      </li>
+    
+      <li class="category">
+        <a class='category' href='/blog/categories/swift/'>swift</a> (1)
+      </li>
+    
+  </ul>
+</section>
+<section>
+  <h1>关于作者</h1>
+  <p>85后程序员，<a href="http://swift.gg/" target="_blank">SwiftGG</a> 翻译组成员。</p>
+  <p>
+  	GitHub：<a href="https://github.com/WXGBridgeQ" target="_blank">WXGBridgeQ</a></br>
+  	新浪微博：<a href="http://weibo.com/coderchow" target="_blank">我是乔忘记疯狂</a></br>
+  </p>
+</section>
+<section>
+  <h1>友情链接</h1>
+  <p>
+  	<a href="http://swift.gg/" target="_blank">SwiftGG翻译组 - 高质量的Swift译文网站</a></br>
+  	<a href="http://www.swiftyper.com/" target="_blank">221B BAKER STREET</a></br>
+  	<a href="http://triplecc.github.io/" target="_blank">tripleCC的技术博客</a></br>
+  </p>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2018 - BridgeQ -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

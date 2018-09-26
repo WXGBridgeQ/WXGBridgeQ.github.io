@@ -1,1 +1,631 @@
-My Octopress Page is coming soon &hellip;
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>BridgeQ的个人学习博客</title>
+  <meta name="author" content="BridgeQ">
+
+  
+  <meta name="description" content="本文翻译总结自AppCoda以下两篇文章： Introduction to Custom View Controller Transitions and Animations
+Creating a Slide Down Menu Using View Controller Transition &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://wxgbridgeq.github.io/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="BridgeQ的个人学习博客" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="/javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.useso.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.useso.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">BridgeQ的个人学习博客</a></h1>
+  
+    <h2>学习、记录、分享</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="sitesearch" value="wxgbridgeq.github.io">
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">首页</a></li>
+  <li><a href="/blog/archives">所有文章</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div class="blog-index">
+  
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/08/10/custom-transition-animation/">自定义控制器转场动画及下拉菜单的小Demo | AppCoda翻译系列</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+2015年8月10日
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>本文翻译总结自AppCoda以下两篇文章：</p>
+
+<ul>
+<li><a href="http://www.appcoda.com/custom-view-controller-transitions-tutorial/">Introduction to Custom View Controller Transitions and Animations</a></li>
+<li><a href="http://www.appcoda.com/slide-down-menu-swift/">Creating a Slide Down Menu Using View Controller Transition</a></li>
+</ul>
+
+
+<p>iOS 7开始，苹果为开发者提供了自定义控制器转场动画相关的API，而实现该功能需要以下三个步骤：</p>
+
+<ul>
+<li>创建一个类作为动画管理器，该类需继承自NSObject并遵守UIViewControllerAnimatedTransitioning协议，我们在这个类中编写我们的动画执行代码。</li>
+<li>为目标控制器指定转场动画代理，既可以使用上一步创建的动画管理器对象，也可以指定来源控制器作为这个代理。</li>
+<li>实现代理协议中的相应方法，在方法中返回第一步创建的动画管理器对象。</li>
+</ul>
+
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/08/10/custom-transition-animation/">阅读全文 &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/08/09/simple-qzone/">简单模仿iPad版QQ空间界面的小Demo</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+2015年8月9日
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>学习iPad开发的第一个小程序，主要学习横竖屏切换时控件frame的更新，以及iPad中modal控制器的样式设置等。</p>
+
+<p>没有太多新知识点，也算是对之前iPhone项目开发的总结回顾吧。</p>
+
+<p>代码思路清晰，注释详尽，适合给新手学习参考。</p>
+
+<p>代码链接地址:<a href="https://github.com/WXGBridgeQ/WXGSimpleQzoneDemo_iPad">WXGSimpleQzoneDemo_iPad</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/07/23/oc-runtime-practice/">一次关于OC运行时和Method Swizzing的小实践</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+2015年7月23日
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h2>起因</h2>
+
+<p>最近练习一个项目，经典的UITabBarController加UINavigationController的组合，茫茫多得页面需要设置一个统一的背景色，起初在每个控制器的viewDidLoad方法中都加上这么一段：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="nb">self</span><span class="p">.</span><span class="n">view</span><span class="p">.</span><span class="n">backgroundColor</span> <span class="o">=</span> <span class="n">WXGGlobalBackgroundColor</span><span class="p">;</span> <span class="c1">// 设置全局背景色</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>可是随着开发的进行，控制器和界面越来越多，每一个控制器都要写这么一句同样的代码让我感觉很烦，于是开始寻找一劳永逸的办法。经旁人指点，这其实跟我们想要黑盒测试一个方法一样，不管控制器的viewDidLoad方法做了什么，最后都给他加上设置背景色的代码就OK了。于是马上想到用OC运行时中的Method Swizzing来搞。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/07/23/oc-runtime-practice/">阅读全文 &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/07/21/protocol-oriented-programming-first/">Swift面向协议编程初探 | WWDC 2015学习笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+2015年7月21日
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>最近有时间，挑了几个今年WWDC中比较感兴趣的Session视频来学习，今天就抽时间整理一下关于<code>Swift 2.0</code>中一个比较新的概念<code>面向协议编程</code>。</p>
+
+<p>相关的Session视频链接如下：</p>
+
+<ul>
+<li><a href="https://developer.apple.com/videos/wwdc/2015/?id=408">Session 408: Protocol-Oriented Programming in Swift</a></li>
+<li><a href="https://developer.apple.com/videos/wwdc/2015/?id=414">Session 414: Building Better Apps with Value Types in Swift</a></li>
+</ul>
+
+
+<h2>写在前面</h2>
+
+<h4>面向协议编程是什么？</h4>
+
+<p>你可能听过类似的概念：<strong>面向对象编程</strong>、<strong>函数式编程</strong>、<strong>泛型编程</strong>，再加上苹果今年新提出的<strong>面向协议编程</strong>，这些统统可以理解为是一种编程范式。所谓编程范式，是隐藏在编程语言背后的思想，代表着语言的作者想要用怎样的<strong>方式</strong>去解决怎样的<strong>问题</strong>。不同的编程范式反应在现实世界中，就是不同的编程语言适用于不同的领域和环境，比如在面向对象编程思想中，开发者用对象来描述万事万物并试图用对象来解决所有可能的问题。编程范式都有其各自的偏好和使用限制，所以越来越多的现代编程语言开始支持<strong>多范式</strong>，使语言自身更强壮也更具适用性。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/07/21/protocol-oriented-programming-first/">阅读全文 &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/07/09/effective-oc-note-second/">Effective Objective-C 读书笔记(二) | 理解OC运行时</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+2015年7月9日
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h2>Class 类型对象</h2>
+
+<p>OC本身是一种强类型语言，但其运行时功能让它又有了动态语言的特点。OC中对象的类型和对象所执行的方法都是在运行时阶段进行查找并确认的，这种机制被称为动态绑定。想要弄清楚运行时如何能够实现动态绑定机制，首先要了解OC中对象的本质。</p>
+
+<p>OC是C语言的超集，所以OC中面向对象的功能在底层也是使用C语言来实现。我们在OC中使用的对象，通常指的是储存该对象内存地址的一个指针变量（Java中称为引用），因此我们在OC中声明对象时通常使用类型名称加一个<code>*</code>号，稍微了解C语言的人都知道<code>*</code>号代表该变量是一个指针变量。OC中还有一个特殊的类型<code>id</code>，它可以表示通用类型的OC对象，因为它本身就被定义为一种特殊的指针变量，所以不需要在id后面再加一个<code>*</code>号。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="bp">NSString</span> <span class="o">*</span><span class="n">someString</span> <span class="o">=</span> <span class="s">@&quot;Some String&quot;</span><span class="p">;</span>
+</span><span class='line'><span class="kt">id</span> <span class="n">otherString</span> <span class="o">=</span> <span class="s">@&quot;Other String&quot;</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="p">[</span><span class="n">someString</span> <span class="n">count</span><span class="p">];</span> <span class="c1">// 编译期报错</span>
+</span><span class='line'><span class="p">[</span><span class="n">otherString</span> <span class="n">count</span><span class="p">];</span> <span class="c1">// 运行时报错</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>使用上述两种方式声明对象，在语法意义上其实完全相同，因为对象的具体类型只在运行时才会被确认。唯一的区别在于，如果声明时使用了具体类型信息，编译器会在编译期间查找对象所能执行的方法，找不到就会报错；而<em>id</em>代表通用类型的对象，编译器默认它能够执行任何已存在的方法。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/07/09/effective-oc-note-second/">阅读全文 &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/07/06/slidemenu-demo/">自己模仿的一个侧拉菜单的小Demo</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+2015年7月6日
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>学iOS开发也有段时间了，模仿写了一个简单实现侧拉菜单的小demo，供初学者共同学习、练习使用。</p>
+
+<p>项目地址：<a href="https://github.com/WXGBridgeQ/WXGSlideMenuDemo">WXGSlideMenuDemo</a></p>
+
+<p>实现效果如下：</p>
+
+<p><img src="http://7xk1wz.com1.z0.glb.clouddn.com/SlideMenu.gif" alt="" /></p>
+
+<p>例子和做法参考了<em>RayWenderlich</em>上的<a href="http://www.raywenderlich.com/87268/3d-effect-taasky-swift">这篇文章</a>，推荐英文好的同学可以多去<a href="http://www.raywenderlich.com/">这里</a>自行学习。</p>
+
+<p><strong>7月7日更新：</strong></p>
+
+<ul>
+<li>修复了一个小bug（手动侧滑显示菜单后没有更改菜单是否显示的状态，导致有时按钮需要点击两次才能显示菜单</li>
+<li>之前的Demo是使用storyboard+自动布局实现的，这次重新写了一份使用纯代码+frame的方式实现该功能的Demo，更加用心，代码质量更好，关键知识点已加注释，希望能帮助到更多的初学者。</li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/06/30/adaptive-layout-tutorial/">Building Adaptive UI 搭建自适应界面 | AppCoda翻译系列</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+2015年6月30日
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>（本文翻译自AppCoda创建者Simon Ng出版的书籍《iOS开发中级教程》，详见：<a href="http://www.appcoda.com/intermediate-swift-programming-book/">Intermediate iOS Programming with Swift</a>）</p>
+
+<p>起初，iPhone只有一种3.5英寸的屏幕，那时的软件界面很容易搭建，开发者只需要处理两种不同方向上的界面展示（水平和竖直方向）。之后，苹果发布了9.7英寸屏幕的iPad，这个时候的开发者必须为他们的应用创建两个不同的界面（比如创建两个storyboard或者xib文件），一个用来搭建iPhone版的界面，另一个用来搭建iPad版的。</p>
+
+<p>好日子一去不复返！从2014年开始，苹果公司的iPhone和iPad产品线变化很大。随着iPhone 6和iPhone 6 Plus的发布，现在的应用需要适配多种不同屏幕尺寸的设备，主要有如下几种：</p>
+
+<ul>
+<li>iPhone 4/4s（3.5英寸）</li>
+<li>iPhone 5/5c/5s（4英寸）</li>
+<li>iPhone 6（4.7英寸）</li>
+<li>iPhone 6 Plus（5.5英寸）</li>
+<li>iPad / iPad 2 / iPad Air / iPad Air 2（9.7英寸）</li>
+<li>iPad mini / iPad mini 2 / iPad mini 3（7.9英寸）</li>
+</ul>
+
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/06/30/adaptive-layout-tutorial/">阅读全文 &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/06/19/uiscrollview-tutorial/">UIScrollView新手教程 | AppCoda翻译系列</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+2015年6月19日
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>（本文翻译自AppCoda，详见：<a href="http://www.appcoda.com/uiscrollview-introduction/">原文链接：A Beginner’s Guide to UIScrollView</a>）</p>
+
+<p>在iOS开发中，滚动视图（UIScrollView）通常用于显示内容尺寸大于屏幕尺寸的视图。滚动视图有以下两个主要作用：</p>
+
+<ul>
+<li><p>让用户可以通过拖拽手势来观看想看到的内容</p></li>
+<li><p>让用户可以通过捏合手势来放大或缩小观看的内容</p></li>
+</ul>
+
+
+<p>在iOS应用中常见的表格视图（UITableView）就继承自滚动视图，并因此可以通过上下滚动来显示更多的内容。</p>
+
+<p>在本篇教程中，我们将讨论滚动视图的诸多方面内容，主要包括：使用纯代码和可视化编程两种方式来创建一个滚动视图、实现滚动和缩放功能，以及如何嵌套使用滚动视图。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/06/19/uiscrollview-tutorial/">阅读全文 &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/05/16/effective-oc-note-first/">Effective Objective-C 读书笔记(一)</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+2015年5月16日
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h2>OC的消息机制</h2>
+
+<p>OC与其他面向对象语言如C++、Java的不同之处在于使用消息机制代替方法调用。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='objc'><span class='line'><span class="c1">// OC</span>
+</span><span class='line'><span class="bp">NSObject</span> <span class="o">*</span><span class="n">obj</span> <span class="o">=</span> <span class="p">[</span><span class="bp">NSObject</span> <span class="n">new</span><span class="p">];</span>
+</span><span class='line'><span class="p">[</span><span class="n">obj</span> <span class="n">doSomething</span><span class="p">];</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// Java</span>
+</span><span class='line'><span class="n">Object</span> <span class="n">obj</span> <span class="o">=</span> <span class="n">new</span> <span class="n">Object</span><span class="p">();</span>
+</span><span class='line'><span class="n">obj</span><span class="p">.</span><span class="n">doSomething</span><span class="p">();</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>两者关键区别在于：在使用方法调用的语言中，程序运行时所应执行的代码多数情况下在编译时期就已经被确定，只有在多态的情况下才会在运行时查看该调用哪段代码。而在OC中，无论是否多态，程序运行时所应执行的代码都是由运行时环境来决定。所以在OC中，编译器并不关心接收消息的对象是何种类型，所有消息也都在运行时才被处理，也就是OC的动态绑定机制。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/05/16/effective-oc-note-first/">阅读全文 &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/05/15/octopress-personal-blog/">使用Octopress搭建个人博客</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+2015年5月15日
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>作为一个iOS开发的新人，学习过程中看了许多大牛的技术博客，也聆听过多次<strong>每一个程序员都应该维护一个个人技术博客</strong>之类的教导，按耐不住终于决定开始搭建自己的个人学习博客。</p>
+
+<p>关于动态网站的搭建，需要学习网站前端、服务器端和后台数据库等技术，配合一些大公司提供的云服务，完全可以实现免费搭建自己的网站，当然如果数据或者访问量过大就需要付费来提升服务质量了。</p>
+
+<p>本文想讨论的是另一种看上去<code>反(geng)潮(zhuang)流(bi)</code>的做法，使用静态网页生成工具配合<a href="https://pages.github.com/">GitHub Pages</a>来搭建个人博客。<a href="http://jekyllrb.com/">Jekyll</a>应该是一个比较好的选择，<a href="http://octopress.org/">Octopress</a>则是在Jekyll的基础上帮你省去了许多麻烦的配置过程。所以我最终的选择是使用Octopress和GitHub Pages来搭建我个人的学习博客。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/05/15/octopress-personal-blog/">阅读全文 &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  <div class="pagination">
+    
+    <a href="/blog/archives">所有文章</a>
+    
+  </div>
+</div>
+<aside class="sidebar">
+  
+    <section>
+  <h1>最新文章</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/08/10/custom-transition-animation/">自定义控制器转场动画及下拉菜单的小Demo | AppCoda翻译系列</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/09/simple-qzone/">简单模仿iPad版QQ空间界面的小Demo</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/23/oc-runtime-practice/">一次关于OC运行时和Method Swizzing的小实践</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/21/protocol-oriented-programming-first/">Swift面向协议编程初探 | WWDC 2015学习笔记</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/09/effective-oc-note-second/">Effective Objective-C 读书笔记(二) | 理解OC运行时</a>
+      </li>
+    
+  </ul>
+</section>
+<section>
+  <h1>文章分类</h1>
+  <ul id="categories">
+    
+      <li class="category">
+        <a class='category' href='/blog/categories/octopress/'>octopress</a> (1)
+      </li>
+    
+      <li class="category">
+        <a class='category' href='/blog/categories/objective-c/'>objective-c</a> (2)
+      </li>
+    
+      <li class="category">
+        <a class='category' href='/blog/categories/ji-zhu-wen-zhang-fan-yi/'>技术文章翻译</a> (3)
+      </li>
+    
+      <li class="category">
+        <a class='category' href='/blog/categories/ios/'>ios</a> (3)
+      </li>
+    
+      <li class="category">
+        <a class='category' href='/blog/categories/swift/'>swift</a> (1)
+      </li>
+    
+  </ul>
+</section>
+<section>
+  <h1>关于作者</h1>
+  <p>85后程序员，<a href="http://swift.gg/" target="_blank">SwiftGG</a> 翻译组成员。</p>
+  <p>
+  	GitHub：<a href="https://github.com/WXGBridgeQ" target="_blank">WXGBridgeQ</a></br>
+  	新浪微博：<a href="http://weibo.com/coderchow" target="_blank">我是乔忘记疯狂</a></br>
+  </p>
+</section>
+<section>
+  <h1>友情链接</h1>
+  <p>
+  	<a href="http://swift.gg/" target="_blank">SwiftGG翻译组 - 高质量的Swift译文网站</a></br>
+  	<a href="http://www.swiftyper.com/" target="_blank">221B BAKER STREET</a></br>
+  	<a href="http://triplecc.github.io/" target="_blank">tripleCC的技术博客</a></br>
+  </p>
+</section>
+
+  
+</aside>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2018 - BridgeQ -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>
